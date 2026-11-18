@@ -3,7 +3,7 @@ bump: minor
 title: New Claude Code CLI card: run the official claude through your own endpoint and key
 ---
 ## vi
-### Tính năng mới
+### Thêm mới
 - **Thẻ "Claude Code CLI" mới ở trang Models.** Nhập tên, Base URL và API key của một tổng đài
   nói chuẩn API của Anthropic (9router chạy trên máy...) là binary `claude` bản chính thức chạy
   qua đó, giống phương thức của thẻ Codex CLI. Giữ nguyên toàn bộ năng lực CLI: shell, tool của
@@ -12,7 +12,7 @@ title: New Claude Code CLI card: run the official claude through your own endpoi
   thẻ khác khi thẻ này không chạy được.
 
 ## en
-### New features
+### Added
 - **A new "Claude Code CLI" card on the Models page.** Enter a name, a Base URL and an API key of
   any Anthropic-format gateway (a local 9router...) and the official `claude` binary runs through
   it, the same method as the Codex CLI card. Full CLI power: native shell, Claude Code's own
