@@ -48,7 +48,7 @@ CODEX = "openai-oauth"
 GROK_CLI = "grok-cli"
 ANTIGRAVITY = "antigravity-cli"
 API_PROVIDERS = ("openrouter", "openai", "gemini", "groq", "deepseek", "anthropic-api", "ollama",
-                 "ollama-local", "openai-compat", "anthropic-compat")
+                 "ollama-local", "openai-compat", "anthropic-compat", "codex-cli", "claude-code-cli")
 
 # provider -> tên trường chứa API key trong settings["model"]
 _KEY_FIELD = {
@@ -69,6 +69,12 @@ _KEY_FIELD = {
     "openai-compat": "openai_compat_key",
     # Anthropic-compatible gateway (0.254.0): usable once its base URL is set, like openai-compat.
     "anthropic-compat": "anthropic_compat_key",
+    # Thẻ "Codex CLI": Codex qua endpoint + key tự khai (main.py nối chat trực tiếp). Việc nền
+    # bằng nhà này đi đường _ApiAuxEngine (chat-thuần của `_api_stream`), không dựng CodexCLI.
+    "codex-cli": "codex_cli_key",
+    # Thẻ "Claude Code CLI": `claude` qua endpoint + key tự khai. Việc nền đi đường _ApiAuxEngine
+    # chat-thuần như codex-cli - đúng khuôn, khỏi dựng engine riêng.
+    "claude-code-cli": "claude_code_cli_key",
 }
 
 # mode của Javis -> sandbox của Codex CLI. Bản đồ thật nằm ở `claude_cli.codex_sandbox_cho_mode`
@@ -338,6 +344,12 @@ def api_key_for(provider: str, settings: dict = None) -> str:
         return (m.get(field) or "none") if (m.get("openai_compat_base") or "").strip() else ""
     if provider == "anthropic-compat":
         return (m.get(field) or "none") if (m.get("anthropic_compat_base") or "").strip() else ""
+    if provider == "codex-cli":
+        # Như openai-compat: địa chỉ là thứ quyết định chạy được, khoá có thể rỗng.
+        return (m.get(field) or "none") if (m.get("codex_cli_base") or "").strip() else ""
+    if provider == "claude-code-cli":
+        # Cùng luật với codex-cli: địa chỉ quyết định, khoá có thể rỗng.
+        return (m.get(field) or "none") if (m.get("claude_code_cli_base") or "").strip() else ""
     if provider == "ollama-local":
         # Ollama at home has no auth: an empty key is normal. Same placeholder as the chat path (main.py, the key of a
         # routed provider) and `ollama_local_chat_with_mcp`. Before this, `_ApiAuxEngine` read "" as "no key", so a
@@ -402,6 +414,28 @@ def availability(spec: dict, settings: dict = None) -> tuple:
         s = settings if settings is not None else cfgmod.read_settings()
         if not (s.get("model", {}) or {}).get("anthropic_compat_base"):
             return False, "Chưa đặt Base URL cho Anthropic Compatible - vào trang Models."
+        return True, ""
+    if prov == "codex-cli":
+        s = settings if settings is not None else cfgmod.read_settings()
+        if not (s.get("model", {}) or {}).get("codex_cli_base"):
+            return False, "Chưa đặt Base URL cho Codex CLI - vào trang Models."
+        try:
+            from claude_cli import find_codex_cli
+            if not find_codex_cli():
+                return False, "Chưa cài Codex CLI (`npm i -g @openai/codex`)."
+        except Exception:
+            return False, "Không kiểm tra được Codex CLI."
+        return True, ""
+    if prov == "claude-code-cli":
+        s = settings if settings is not None else cfgmod.read_settings()
+        if not (s.get("model", {}) or {}).get("claude_code_cli_base"):
+            return False, "Chưa đặt Base URL cho Claude Code CLI - vào trang Models."
+        try:
+            from claude_cli import find_claude_cli
+            if not find_claude_cli():
+                return False, "Chưa cài Claude Code CLI (`npm i -g @anthropic-ai/claude-code`)."
+        except Exception:
+            return False, "Không kiểm tra được Claude Code CLI."
         return True, ""
     if prov in API_PROVIDERS:
         if not api_key_for(prov, settings):
@@ -985,6 +1019,47 @@ def _build_codex(spec, claude_cli_obj, mode, tag, codex_profile=None):
     cc.extra_config.append('service_tier="default"')
     return cc
 
+def _build_codex_cli(spec, claude_cli_obj, mode, tag, codex_profile, m):
+    """Thẻ CODEX CLI cho việc nền: CodexCLI với model_provider ghi đè qua extra_config
+    (codex_gateway_config), đi qua endpoint + key tự khai thay vì phiên ChatGPT. Cùng khuôn
+    `_build_codex` - sandbox theo mode, hub theo profile, service_tier thường."""
+    from claude_cli import CodexCLI, codex_sandbox_cho_mode, codex_gateway_config
+    cc = CodexCLI(cwd=getattr(claude_cli_obj, "cwd", None),
+                  tag=tag or getattr(claude_cli_obj, "tag", "aux"),
+                  model=spec.get("model") or None,
+                  instructions=getattr(claude_cli_obj, "system_prompt", None))
+    cc.sandbox = codex_sandbox_cho_mode(mode or getattr(claude_cli_obj, "javis_mode", None) or "full")
+    cc.vault_root = getattr(claude_cli_obj, "javis_vault", None)
+    if codex_profile:
+        try:
+            cc.profile = codex_profile()
+        except Exception as e:
+            print(f"[aux codex-cli profile] {e}", file=sys.stderr)
+    # Host tự khai không phải chatgpt.com: bỏ provider http dựng sẵn, để overrides bên dưới thắng.
+    cc.transport = "ws"
+    cc.extra_config[:] = codex_gateway_config(
+        m.get("codex_cli_name") or "Codex CLI",
+        (m.get("codex_cli_base") or "").strip(),
+        (m.get("codex_cli_key") or "").strip() or "none")
+    try:
+        import mcp_hub
+        mcp_hub.dat_codex_vault(cc.extra_config, getattr(claude_cli_obj, "javis_vault", None))
+        mcp_hub.dat_codex_mode(cc.extra_config,
+                               mode or getattr(claude_cli_obj, "javis_mode", None) or "full")
+    except Exception as e:
+        print(f"[aux codex-cli vault] {e}", file=sys.stderr)
+    try:
+        if (cc.profile and la_viec_nen_theo_lich(cc.tag)
+                and bool(cfgmod.read_settings().get("mcp", {}).get("hub", True))):
+            import mcp_hub
+            mcp_hub.dat_codex_hub_bat_buoc(cc.extra_config)
+            mcp_hub.dat_codex_tat_app(cc.extra_config)
+    except Exception as e:
+        print(f"[aux codex-cli hub] {e}", file=sys.stderr)
+    cc.extra_config[:] = [x for x in cc.extra_config if not str(x).startswith("service_tier=")]
+    cc.extra_config.append('service_tier="default"')
+    return cc
+
 
 # Nhãn lượt của việc nền THEO LỊCH: nhắc hẹn, loop, Kanban ("dispatch:<id>:<hậu tố>"). The "-main" suffix came from
 # the pre-0.350.0 main-brain link; it is still accepted so old tags read the same.
@@ -1247,6 +1322,34 @@ def _links_for_step(step: dict, cli, mode, tag, codex_profile, settings, claude_
         if prov == CODEX:
             return _per_account(CODEX, _build_codex(sp, cli, mode, tag, codex_profile), settings,
                                 lambda: _build_codex(sp, cli, mode, tag, codex_profile))
+        if prov == "codex-cli":
+            # Thẻ Codex CLI: việc nền chạy Codex CLI THẬT (shell + MCP hub) qua endpoint tự khai,
+            # không phải chat-thuần của _ApiAuxEngine - cùng lý do việc nền ChatGPT đi _build_codex.
+            m = (settings if settings is not None else cfgmod.read_settings()).get("model", {}) or {}
+            base = (m.get("codex_cli_base") or "").strip()
+            if not base:
+                return []
+            return [_build_codex_cli(sp, cli, mode, tag, codex_profile, m)]
+        if prov == "claude-code-cli":
+            # Thẻ Claude Code CLI: việc nền chạy `claude` THẬT (shell + MCP) qua endpoint tự khai,
+            # bằng chính engine ClaudeSDK với env_override - khuôn nhánh CLAUDE ngay trên, khác
+            # mỗi chỗ env tiến trình mang thêm ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN.
+            s = settings if settings is not None else cfgmod.read_settings()
+            m = s.get("model", {}) or {}
+            base = (m.get("claude_code_cli_base") or "").strip()
+            if not base:
+                return []
+            import copy as _copy
+            e = _copy.copy(cli)
+            e.model = sp["model"] or None
+            eff = _cli_effort(level)
+            if eff and hasattr(e, "effort"):
+                e.effort = eff
+            e.env_override = {
+                "ANTHROPIC_BASE_URL": base,
+                "ANTHROPIC_AUTH_TOKEN": (m.get("claude_code_cli_key") or "").strip(),
+            }
+            return [e]
         if prov == GROK_CLI:
             return _per_account(GROK_CLI, _build_grok(sp, cli, mode, tag), settings,
                                 lambda: _build_grok(sp, cli, mode, tag))
@@ -1256,7 +1359,8 @@ def _links_for_step(step: dict, cli, mode, tag, codex_profile, settings, claude_
             s = settings if settings is not None else cfgmod.read_settings()
             m = s.get("model", {}) or {}
             field = _KEY_FIELD.get(prov, "")
-            accs = ([] if prov in ("openai-compat", "anthropic-compat", "ollama-local")
+            accs = ([] if prov in ("openai-compat", "anthropic-compat", "ollama-local", "codex-cli",
+                                   "claude-code-cli")
                     else model_routing.usable_accounts(m, prov, field))
             mk = lambda key="", acc="": _ApiAuxEngine(   # noqa: E731
                 provider=prov, model=sp["model"], system_prompt=getattr(cli, "system_prompt", None),

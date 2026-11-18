@@ -540,6 +540,12 @@ class ClaudeSDK:
         self._stderr_tail = collections.deque(maxlen=40)
         # `_options` đặt: lượt này có đấu cổng công cụ của Javis không (None = chưa biết).
         self._hub_attached = None
+        # Thẻ "Claude Code CLI" (claude-code-cli): endpoint + API key tự khai (9router...). None =
+        # không ghi đè gì, đúng hành vi cũ. Có giá trị thì env của tiến trình `claude` mang thêm
+        # ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN - chính hai biến mà Claude Code đọc khi trỏ
+        # vào một tổng đài Anthropic-format. Bản thân Claude Code Ưu tiên hai biến này trước phiên
+        # đăng nhập, nên không đụng tới `~/.claude` của ai.
+        self.env_override = None
 
     def _on_stderr(self, line):
         """Nhận từng dòng stderr của tiến trình `claude`.
@@ -820,6 +826,11 @@ class ClaudeSDK:
             _env = {}
         if _env and "env" in fields:
             kw["env"] = {**os.environ, **_env}
+        # Thẻ "Claude Code CLI": ghi đè endpoint + token lên env của tiến trình `claude`. Đặt
+        # SAU nhánh claude_auth để thắng: máy để chế độ api_key thì key gói Anthropic không được
+        # mang sang host tự khai. Merge như trên - mất PATH là tiến trình chết trước khi chào.
+        if getattr(self, "env_override", None) and "env" in fields:
+            kw["env"] = {**kw.get("env", os.environ), **self.env_override}
         if self.model:
             kw["model"] = self.model
         # Độ sâu suy nghĩ đi bằng CỜ THẬT của Claude Code (`--effort`), không phải bằng mấy từ

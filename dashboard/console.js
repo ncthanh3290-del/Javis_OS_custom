@@ -3463,7 +3463,7 @@
     // folds or opens it, that choice wins.
     const showOff = ui.set ? ui.showOff : !connList.length;
 
-    const KEYFIELD = { "openrouter": "openrouter_key", "anthropic-api": "anthropic_api_key", "openai": "openai_api_key", "gemini": "gemini_api_key", "groq": "groq_api_key", "deepseek": "deepseek_api_key", "ollama": "ollama_key", "openai-compat": "openai_compat_key", "anthropic-compat": "anthropic_compat_key" };
+    const KEYFIELD = { "openrouter": "openrouter_key", "anthropic-api": "anthropic_api_key", "openai": "openai_api_key", "gemini": "gemini_api_key", "groq": "groq_api_key", "deepseek": "deepseek_api_key", "ollama": "ollama_key", "openai-compat": "openai_compat_key", "anthropic-compat": "anthropic_compat_key", "codex-cli": "codex_cli_key", "claude-code-cli": "claude_code_cli_key" };
     // ---- Usage order cards (0.351.0). `ord` = {idx} for a card in the order, null for a card still to connect. ----
     const effName = (v) => t((window.JavisEffortSlider && window.JavisEffortSlider.LABEL_KEY[v]) || "eff.off");
     const FAST_BOLT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>';
@@ -3828,6 +3828,43 @@
           </div>
         </div>`;
       }
+      if (p.id === "codex-cli") {
+        // The official Codex CLI run through the owner's own endpoint + key (9router, LiteLLM, a key-rotating
+        // proxy...). Full CLI: native shell, Codex's own tools, the Javis hub. Key may be blank (no auth).
+        const ccFound = p.cli_found !== false;
+        const status = !ccFound ? t("models.cc_no_cli") : (on ? t("models.st_connected") : t("models.st_not_connected"));
+        return `${cardOpen(p, ord)}
+          ${provHead(p, on, "MCP Javis", status + " · " + p.models.length + " model", true, ord)}
+          ${infoBody(esc(t("models.cc_note")))}
+          <div class="prov-action" style="flex-wrap:wrap">
+            <input class="js-input" id="ccName" spellcheck="false" style="flex:1 1 100%" value="${esc(m.codex_cli_name || "")}" placeholder="${esc(t("models.cc_name_ph"))}">
+            <input class="js-input" id="ccBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.codex_cli_base || "")}" placeholder="${esc(t("models.cc_base_ph"))}">
+            <input class="js-input" id="ccKey" type="password" style="flex:1" placeholder="${on && masked ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.oc_key_ph"))}">
+            <button class="gcard-btn" id="ccSave">${on ? esc(t("common.save")) : esc(t("models.connect"))}</button>
+            ${on ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}
+            <span id="ccMsg" class="gcard-meta" style="flex:1 1 100%"></span>
+          </div>
+        </div>`;
+      }
+      if (p.id === "claude-code-cli") {
+        // The official Claude Code CLI run through the owner's own Anthropic-format endpoint + key
+        // (9router...). Full CLI: native shell, Claude Code's own tools, the Javis hub, the saved
+        // sessions untouched. Key may be blank (no auth).
+        const cgFound = p.cli_found !== false;
+        const status = !cgFound ? t("models.cg_no_cli") : (on ? t("models.st_connected") : t("models.st_not_connected"));
+        return `${cardOpen(p, ord)}
+          ${provHead(p, on, "MCP Javis", status + " · " + p.models.length + " model", true, ord)}
+          ${infoBody(esc(t("models.cg_note")))}
+          <div class="prov-action" style="flex-wrap:wrap">
+            <input class="js-input" id="cgName" spellcheck="false" style="flex:1 1 100%" value="${esc(m.claude_code_cli_name || "")}" placeholder="${esc(t("models.cg_name_ph"))}">
+            <input class="js-input" id="cgBase" inputmode="url" spellcheck="false" style="flex:1 1 100%" value="${esc(m.claude_code_cli_base || "")}" placeholder="${esc(t("models.cg_base_ph"))}">
+            <input class="js-input" id="cgKey" type="password" style="flex:1" placeholder="${on && masked ? esc(t("models.key_change_ph", { duoi: masked })) : esc(t("models.oc_key_ph"))}">
+            <button class="gcard-btn" id="cgSave">${on ? esc(t("common.save")) : esc(t("models.connect"))}</button>
+            ${on ? `<button class="gcard-btn ghost" data-disc="${p.id}">${esc(t("models.disconnect"))}</button>` : ""}
+            <span id="cgMsg" class="gcard-meta" style="flex:1 1 100%"></span>
+          </div>
+        </div>`;
+      }
       if (p.id === "anthropic-compat") {
         // 0.254.0: a gateway speaking the Anthropic Messages API. Most of them list no models, so
         // the card also takes the model names the seller gave (comma separated).
@@ -3950,6 +3987,49 @@
           const box = document.getElementById("ocModels");
           if (box) { box.style.display = ""; box.focus(); }
         }
+        return;
+      }
+      forgetModelLists();
+      await freshSettings();
+      renderModelsCloudTab(el);
+    };
+    const ccSave = document.getElementById("ccSave");
+    if (ccSave) ccSave.onclick = async () => {
+      const name = (document.getElementById("ccName").value || "").trim();
+      const base = (document.getElementById("ccBase").value || "").trim();
+      const key = (document.getElementById("ccKey").value || "").trim();
+      const msg = document.getElementById("ccMsg");
+      if (!name) { msg.textContent = t("models.cc_need_name"); document.getElementById("ccName").focus(); return; }
+      if (!/^https?:\/\//i.test(base)) { msg.textContent = t("models.oc_need_base"); document.getElementById("ccBase").focus(); return; }
+      ccSave.disabled = true; ccSave.textContent = t("settings.checking");
+      // The server reads {base}/models with this key and saves only when the host answers; a refused key or an
+      // unreachable host saves nothing. A gateway that lists no models is fine: Codex needs no list to run.
+      let r;
+      try { r = await postJson("/provider/codex-cli/connect", { name: name, base: base, key: key }, 60000); } catch (e) { r = { ok: false, error: String(e) }; }
+      if (!r || !r.ok) {
+        ccSave.disabled = false; ccSave.textContent = t("models.connect");
+        msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap"));
+        return;
+      }
+      forgetModelLists();
+      await freshSettings();
+      renderModelsCloudTab(el);
+    };
+    const cgSave = document.getElementById("cgSave");
+    if (cgSave) cgSave.onclick = async () => {
+      const name = (document.getElementById("cgName").value || "").trim();
+      const base = (document.getElementById("cgBase").value || "").trim();
+      const key = (document.getElementById("cgKey").value || "").trim();
+      const msg = document.getElementById("cgMsg");
+      if (!name) { msg.textContent = t("models.cg_need_name"); document.getElementById("cgName").focus(); return; }
+      if (!/^https?:\/\//i.test(base)) { msg.textContent = t("models.oc_need_base"); document.getElementById("cgBase").focus(); return; }
+      cgSave.disabled = true; cgSave.textContent = t("settings.checking");
+      // Same rule as the Codex CLI card: save only when the host answers {base}/models with this key.
+      let r;
+      try { r = await postJson("/provider/claude-code-cli/connect", { name: name, base: base, key: key }, 60000); } catch (e) { r = { ok: false, error: String(e) }; }
+      if (!r || !r.ok) {
+        cgSave.disabled = false; cgSave.textContent = t("models.connect");
+        msg.innerHTML = WARN_ICON + " " + esc((r && r.error) || t("app.err_cap"));
         return;
       }
       forgetModelLists();

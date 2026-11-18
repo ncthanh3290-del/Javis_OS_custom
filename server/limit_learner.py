@@ -481,6 +481,10 @@ ENGINE_HINT_BY_PROVIDER = {
     "openai-oauth": "codex",
     "grok-cli": "grok-cli",
     "antigravity-cli": "antigravity-cli",
+    # Thẻ gateway chạy chính binary `claude`: cùng dạng câu của Claude Code. Hint để TRỐNG
+    # tên provider id (đúng docstring hàm dưới) - `engine=(engine_hint or engine)` nên điểm
+    # (_LIMIT_ENGINE_PROVIDER) rơi đúng THẺ này, còn câu dịch đọc nhãn riêng ở model_limits.
+    "claude-code-cli": "claude-code-cli",
 }
 
 # Trần chữ của một output được coi là "chỉ có câu báo hết lượt". Dài hơn thế thì bước đã LÀM

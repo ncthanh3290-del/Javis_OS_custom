@@ -1877,6 +1877,7 @@ def codex_sandbox_cho_mode(mode: str) -> Optional[str]:
 # JAVIS_CODEX_TRANSPORT: auto (mặc định) = WebSocket như Codex, trừ khi máy này vừa thấy
 # WebSocket hỏng thì đi HTTPS một thời gian; http = luôn HTTPS; ws = luôn để Codex tự quyết.
 CODEX_HTTP_PROVIDER = "javis-chatgpt-http"
+CODEX_GATEWAY_PROVIDER = "javis-codex-gateway"   # thẻ "Codex CLI": endpoint + key tự khai (9router...)
 _WS_HONG_FILE = "codex_ws_hong.json"
 _WS_HONG_TTL = 3 * 86400        # hết hạn thì thử lại WebSocket: lỗi phía mạng hay phía OpenAI đều có lúc hết
 _RECONNECT_RE = re.compile(r"^\s*(Reconnecting\.\.\.|Falling back from WebSockets)", re.I)
@@ -2043,6 +2044,38 @@ def codex_http_config() -> list:
             f"{p}.requires_openai_auth=true",
             f"{p}.supports_websockets=false",
             f'model_provider="{CODEX_HTTP_PROVIDER}"']
+
+# Thẻ "Codex CLI" (provider `codex-cli`): Codex bản chính thức chạy qua endpoint + API key tự khai
+# (9router, LiteLLM, proxy xoay key...). Khác `codex_http_config()` ở chỗ xác thực là `http_headers`
+# của provider chứ không phải phiên ChatGPT (`requires_openai_auth` là cờ của đăng nhập gói, KHÔNG
+# dùng ở đây). wire_api PHẢI "responses": bản 0.170+ đã gỡ đường "chat", còn 9router phục vụ
+# /v1/responses gốc (đã thử thật HTTP 200). Truyền qua `CodexCLI.extra_config` nên cả lượt `exec`
+# (_build_args) lẫn app-server (codex_steer._args) đều nhận.
+def codex_gateway_config(name: str, base: str, key: str) -> list:
+    """Các `-c` trỏ Codex CLI tới endpoint OpenAI-format tự khai, xác thực bằng key nhúng header."""
+    p = f"model_providers.{CODEX_GATEWAY_PROVIDER}"
+    return [f'{p}.name="{_toml_escape(name)}"',
+            f'{p}.base_url="{_toml_escape(base)}"',
+            f'{p}.wire_api="responses"',
+            f'{p}.http_headers.Authorization="Bearer {_toml_escape(key)}"',
+            f'model_provider="{CODEX_GATEWAY_PROVIDER}"']
+
+def _toml_escape(s: str) -> str:
+    return str(s or "").replace("\\", "\\\\").replace('"', '\\"')
+
+
+def claude_gateway_env(name: str, base: str, key: str) -> dict:
+    """Env ghi đè cho tiến trình `claude` chạy qua endpoint Anthropic-format tự khai.
+
+    Thẻ "Claude Code CLI": Claude Code đọc ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN (chính
+    cách 9Router hướng dẫn trỏ Claude Code vào nó), ưu tiên hai biến này trước phiên đăng nhập
+    nên không đụng tới `~/.claude`. Truyền qua `ClaudeSDK.env_override` (claude_sdk_engine).
+    """
+    return {"ANTHROPIC_BASE_URL": str(base or "").strip(),
+            "ANTHROPIC_AUTH_TOKEN": str(key or "").strip(),
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": str(name or "").strip(),
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": str(name or "").strip(),
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": str(name or "").strip()}
 
 
 def la_thong_bao_ket_noi_lai(msg: str) -> bool:

@@ -2459,11 +2459,28 @@ PROVIDER_DEFS = [   # thứ tự = thứ tự hiển thị card ở trang Models
     # whatever /models returned or the model names the owner typed when connecting.
     {"id": "anthropic-compat", "label": "Anthropic Compatible", "kind": "api", "key_field": "anthropic_compat_key",
      "catalog_key": "anthropic-compat", "default_models": []},
+    # Thẻ "Codex CLI": binary `codex` bản chính thức chạy qua endpoint + API key tự khai
+    # (9router chạy trên máy, LiteLLM, proxy xoay key...), cùng phương thức với openai-compat
+    # nhưng ĐI QUA CLI nên giữ nguyên shell, MCP hub, tool native của Codex. Địa chỉ lưu ở
+    # `model.codex_cli_base`, tên hiển thị ở `model.codex_cli_name`, khoá ở `codex_cli_key`
+    # (có thể rỗng với endpoint không đòi xác thực). Danh sách model hỏi LIVE từ {base}/models.
+    {"id": "codex-cli", "label": "Codex CLI", "kind": "api", "key_field": "codex_cli_key",
+     "catalog_key": "codex-cli", "default_models": []},
+    # Thẻ "Claude Code CLI": binary `claude` bản chính thức chạy qua endpoint + API key tự khai
+    # (9router chạy trên máy...), cùng phương thức với codex-cli nhưng ở định dạng Anthropic:
+    # env ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN ghi đè xuống tiến trình `claude`
+    # (claude_gateway_env qua ClaudeSDK.env_override), giữ nguyên shell, MCP hub, tool native
+    # của Claude Code, không đụng phiên đăng nhập ở ~/.claude. Địa chỉ lưu ở
+    # `model.claude_code_cli_base`, tên hiển thị ở `model.claude_code_cli_name`, khoá ở
+    # `claude_code_cli_key`. Danh sách model hỏi LIVE từ {base}/models (OpenAI-format listing,
+    # 9router phục vụ cả hai định dạng).
+    {"id": "claude-code-cli", "label": "Claude Code CLI", "kind": "api", "key_field": "claude_code_cli_key",
+     "catalog_key": "claude-code-cli", "default_models": []},
 ]
 
 _PROVIDER_KEY_FIELDS = tuple(p["key_field"] for p in PROVIDER_DEFS if p.get("key_field"))
 # Providers addressed by an endpoint, not by an account: one key at most, no account list (0.350.0).
-_ROUTING_SINGLE_KEY = ("openai-compat", "anthropic-compat", "ollama-local")
+_ROUTING_SINGLE_KEY = ("openai-compat", "anthropic-compat", "ollama-local", "codex-cli", "claude-code-cli")
 
 
 def _card_label(p: dict) -> str:
@@ -2574,6 +2591,13 @@ def _providers_view(cfg):
             # nối" cho mọi máy, kể cả máy chưa hề đặt địa chỉ - ô chọn model liền bày một nhà
             # "đã nối" mà bấm vào thì rỗng. Cùng cái bẫy đã dính với Claude/Codex (cli_found).
             configured = bool((m.get("ollama_local_endpoint") or "").strip())
+        elif p["id"] == "codex-cli":
+            # Cùng luật với ollama-local: đã nối khi CÓ địa chỉ (key có thể rỗng), và binary
+            # `codex` phải có thật - thiếu là thẻ xanh mà chat vỡ (ca của openai-oauth 16/08).
+            configured = bool((m.get("codex_cli_base") or "").strip()) and bool(find_codex_cli())
+        elif p["id"] == "claude-code-cli":
+            # Cùng luật với codex-cli: CÓ địa chỉ + binary `claude` có thật.
+            configured = bool((m.get("claude_code_cli_base") or "").strip()) and bool(find_claude_cli())
         elif p["id"] in adv_keys.PROVIDERS:
             configured = bool(adv_keys.gateways(m, p["id"]))
         elif p["key_field"] is None:
@@ -2604,6 +2628,19 @@ def _providers_view(cfg):
             item["cli_found"] = bool(find_codex_cli())
             item["cai_lenh"] = "npm install -g @openai/codex"
             item["cli_env"] = "JAVIS_CODEX_BIN"
+            item["docker"] = deploy_info.deploy_mode() == "docker"
+        if p["id"] == "codex-cli":
+            # Thẻ dùng binary `codex` chung với openai-oauth: thiếu CLI là thẻ xanh mà chat
+            # vỡ, nên lộ cli_found + lệnh cài y hệt thẻ ChatGPT.
+            item["cli_found"] = bool(find_codex_cli())
+            item["cai_lenh"] = "npm install -g @openai/codex"
+            item["cli_env"] = "JAVIS_CODEX_BIN"
+            item["docker"] = deploy_info.deploy_mode() == "docker"
+        if p["id"] == "claude-code-cli":
+            # Thẻ dùng binary `claude` chung với thẻ Claude Code: cùng luật lộ cli_found.
+            item["cli_found"] = bool(find_claude_cli())
+            item["cai_lenh"] = "npm install -g @anthropic-ai/claude-code"
+            item["cli_env"] = "JAVIS_CLAUDE_BIN"
             item["docker"] = deploy_info.deploy_mode() == "docker"
         if p["id"] == "grok-cli":
             _k = grok_cli.auth_status()
@@ -3688,6 +3725,18 @@ def _provider_key(mcfg, d):
         if not (mcfg.get("anthropic_compat_base") or "").strip():
             return ""
         return (mcfg.get("anthropic_compat_key") or "").strip() or "none"
+    if d.get("id") == "codex-cli":
+        # Như openai-compat: thứ xác thực dùng được là ĐỊA CHỈ, khoá có thể rỗng (endpoint
+        # không đòi key). Rỗng thì gửi "none" để mọi cổng định tuyến hỏi `api_key` thấy nhà
+        # này chạy được - bài học của ollama-local ghi ngay trên.
+        if not (mcfg.get("codex_cli_base") or "").strip():
+            return ""
+        return (mcfg.get("codex_cli_key") or "").strip() or "none"
+    if d.get("id") == "claude-code-cli":
+        # Cùng luật với codex-cli: ĐỊA CHỈ là thứ xác thực, khoá có thể rỗng.
+        if not (mcfg.get("claude_code_cli_base") or "").strip():
+            return ""
+        return (mcfg.get("claude_code_cli_key") or "").strip() or "none"
     if not d.get("key_field"):
         return ""
     # 0.350.0: several keys per provider, used top to bottom; a key put to rest after a quota error is skipped.
@@ -3760,7 +3809,9 @@ AGENT_PROVIDERS = ("anthropic-cli", "openai-oauth", "grok-cli", "antigravity-cli
                    # Model chạy máy nhà cũng giao được việc nền cho agent. Bỏ nó ra khỏi đây
                    # là tính năng nửa vời: cài model về rồi mà chỉ chat tay được, không giao
                    # cho agent hay workflow nào chạy.
-                   "ollama-local", "openai-compat", "anthropic-compat")
+                   "ollama-local", "openai-compat", "anthropic-compat", "codex-cli",
+                   # Thẻ Claude Code CLI: binary `claude` thật có shell + MCP, giao việc nền được.
+                   "claude-code-cli")
 
 
 def _agent_model_provider(model: str, provider: str = "") -> str:
@@ -3784,7 +3835,10 @@ _PIN_LIMITED: dict = {}
 # Antigravity was missing here until 05/11/2026, so an `agy` turn out of quota marked nothing: a chat pinned to it kept running
 # on it and failed every turn instead of moving to the main card (owner's report, 05/11/2026).
 _LIMIT_ENGINE_PROVIDER = {"claude-code": "anthropic-cli", "codex": "openai-oauth", "grok-cli": "grok-cli",
-                          "antigravity-cli": "antigravity-cli"}
+                          "antigravity-cli": "antigravity-cli",
+                          # Thẻ Claude Code CLI: cùng câu báo hết lượt của Claude Code nhưng pin
+                          # đúng THẺ NÀY, không ghim thẻ Claude Code gốc.
+                          "claude-code-cli": "claude-code-cli"}
 PIN_LIMIT_DEFAULT_S = 3600
 # provider -> account id the last chat engine of that provider ran on (plan_accounts, 0.353.0). Read when that turn
 # reports "out of quota", so the account that ran out is the one that rests.
@@ -4628,6 +4682,48 @@ def _grok_sub_stream(model, messages, reasoning="off", *, brain=None, tag="chat"
     # {tool_call, final, usage, error}, viết lại là ba bản dễ lệch nhau.
     return _cli_sub_doc(g, _cli_do_sau_khac(g, grok_cli, reasoning, prompt), model)
 
+def _codex_cli_sub_stream(model, messages, reasoning="off", *, brain=None, tag="chat"):
+    """Thẻ CODEX CLI cho đường CHAT-THUẦN của `_api_stream` và vòng tool của bot.
+
+    Codex bản chính thức nhưng qua endpoint + key tự khai (`codex_gateway_config` ghi đè
+    model_provider qua extra_config), không đụng phiên ChatGPT. Cùng lý do tồn tại với
+    `_grok_sub_stream`: provider nào không có nhánh ở `_api_stream` sẽ rơi xuống
+    `engine.anthropic_stream(key="")` và hỏng câm. KHÔNG phải `async def` - xem chú thích
+    dài ở `_antigravity_sub_stream`.
+    """
+    sys_txt, prompt = _claude_sub_tach(messages)
+    m = cfgmod.read_settings().get("model", {}) or {}
+    g = CodexCLI(cwd=_brain_root(brain) if brain else None, tag=tag,
+                 model=model or None, instructions=sys_txt)
+    g.transport = "ws"   # cổng tự khai không phải chatgpt.com: bỏ provider http dựng sẵn
+    g.extra_config[:] = claude_cli.codex_gateway_config(
+        m.get("codex_cli_name") or "Codex CLI",
+        (m.get("codex_cli_base") or "").strip(),
+        (m.get("codex_cli_key") or "").strip() or "none")
+    if brain:
+        _apply_codex_hub(g, _brain_root(brain))
+    return _cli_sub_doc(g, _codex_do_sau(g, reasoning, prompt), model)
+
+
+def _claude_code_cli_sub_stream(model, messages, reasoning="off", *, brain=None, tag="chat"):
+    """Thẻ CLAUDE CODE CLI cho đường CHAT-THUẦN của `_api_stream` và vòng tool của bot.
+
+    `claude` bản chính thức qua endpoint + API key tự khai (`claude_gateway_env` ghi đè
+    ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN xuống tiến trình `claude` qua ClaudeSDK.env_override),
+    không đụng phiên đăng nhập ở ~/.claude. Cùng lý do tồn tại với `_codex_cli_sub_stream`:
+    provider nào không có nhánh ở `_api_stream` sẽ rơi xuống `engine.anthropic_stream(key="")`
+    và hỏng câm. KHÔNG phải `async def` - xem chú thích dài ở `_antigravity_sub_stream`.
+    """
+    sys_txt, prompt = _claude_sub_tach(messages)
+    m = cfgmod.read_settings().get("model", {}) or {}
+    cli = claude_engine(system_prompt=sys_txt, cwd=_brain_root(brain) if brain else None,
+                        tag=tag, model=model or None)
+    cli.env_override = claude_cli.claude_gateway_env(
+        m.get("claude_code_cli_name") or "Claude Code CLI",
+        (m.get("claude_code_cli_base") or "").strip(),
+        (m.get("claude_code_cli_key") or "").strip())
+    return _claude_sub_doc(cli, _claude_kem_anh(messages, _cli_do_sau(cli, reasoning, prompt)), model)
+
 
 async def _cli_sub_doc(g, prompt, model):
     """Một lượt engine CLI (Antigravity hoặc Grok) -> hợp đồng sự kiện của `_api_stream`.
@@ -4715,6 +4811,14 @@ def _api_stream_goc(prov, key, model, messages, reasoning="off"):
         return engine.openai_compat_stream(key, model, messages, reasoning)
     if prov == "anthropic-compat":
         return engine.anthropic_compat_stream(key, model, messages, reasoning)
+    if prov == "codex-cli":
+        # Chat-thuần của thẻ Codex CLI: cùng khuôn `_grok_sub_stream`, không tool ở đường này
+        # (bot/đường tắt cần tool đi `_bot_stream_co_tool`). KHÔNG phải async def - nơi gọi làm
+        # `async for ev in _api_stream(...)`, xem chú thích dài ở `_antigravity_sub_stream`.
+        return _codex_cli_sub_stream(model, messages, reasoning)
+    if prov == "claude-code-cli":
+        # Chat-thuần của thẻ Claude Code CLI: cùng khuôn, `claude` qua endpoint tự khai.
+        return _claude_code_cli_sub_stream(model, messages, reasoning)
     if prov == "openai-oauth":
         creds = openai_oauth.valid_creds() or {}
         return engine.openai_responses_stream(creds.get("access_token", ""), creds.get("account_id", ""),
@@ -4747,7 +4851,7 @@ def _hub_enabled():
 # (`ollama-local`) từng bị sót đúng như vậy từ lúc có nhánh của nó tới 0.92.2 (người dùng Mac báo 11/10: "model báo không có
 # quyền tool", không đọc được file, không gọi được MCP).
 _API_TOOL_PROVIDERS = ("openrouter", "openai", "anthropic-api", "gemini", "groq", "deepseek", "ollama",
-                       "ollama-local", "openai-compat", "anthropic-compat")
+                       "ollama-local", "openai-compat", "anthropic-compat", "codex-cli", "claude-code-cli")
 
 
 def _coding_ctx_luot(row, brain=None, sid="", chat_id=""):
@@ -4892,11 +4996,20 @@ async def _api_stream_mcp(prov, key, model, messages, reasoning="off", brain=Non
                 return engine.openai_compat_chat_with_mcp(key, model, messages, reasoning, tools, route)
             if prov == "anthropic-compat":
                 return engine.anthropic_compat_chat_with_mcp(key, model, messages, reasoning, tools, route)
+            if prov == "codex-cli":
+                # Tool loop của thẻ Codex CLI: Codex chính nó là agent có shell + MCP (extra_config
+                # đã trỏ model_provider tới cổng tự khai), nên tools/route chỉ dùng để BIẾT lượt
+                # này có công cụ hay không - hub đã đấu qua profile của chính Codex.
+                return _codex_cli_sub_stream(model, messages, reasoning, brain=None, tag="chat")
+            if prov == "claude-code-cli":
+                # Tool loop của thẻ Claude Code CLI: `claude` chính nó là agent có shell + MCP
+                # (env_override đã trỏ ANTHROPIC_BASE_URL tới cổng tự khai), cùng luật trên.
+                return _claude_code_cli_sub_stream(model, messages, reasoning, brain=None, tag="chat")
             return engine.ollama_chat_with_mcp(key, model, messages, reasoning, tools, route)
         if prov == "ollama-local":
             return _boc(engine.ollama_local_chat_with_mcp(key, model, messages, reasoning, tools, route))
 
-        if prov in ("openrouter", "openai", "anthropic-api", "anthropic-compat", "gemini", "groq", "deepseek", "ollama", "openai-compat"):
+        if prov in ("openrouter", "openai", "anthropic-api", "anthropic-compat", "gemini", "groq", "deepseek", "ollama", "openai-compat", "codex-cli", "claude-code-cli"):
             return _boc(engine.thu_lai_khi_tam_thoi(_vong_tool, nhan=f"{prov}/{model or 'mặc định'}+tool"))
     return _api_stream(prov, key, model, messages, reasoning)
 
@@ -7696,6 +7809,29 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
                 m["anthropic_compat_key"] = ""   # a saved key belongs to its old gateway
             m["anthropic_compat_base"] = new_base
             _PROV_MODELS_CACHE.pop("anthropic-compat", None)
+        if "codex_cli_base" in patch:
+            # Cùng luật với hai gateway trên: khoá đã lưu thuộc về địa chỉ cũ, không bao giờ
+            # mang sang địa chỉ mới (gửi nhầm khoá của mình cho host lạ).
+            new_base = str(patch["codex_cli_base"] or "").strip().rstrip("/")
+            if new_base != (m.get("codex_cli_base") or "") and not (
+                    patch.get("codex_cli_key") and
+                    not str(patch["codex_cli_key"]).startswith("••••")):
+                m["codex_cli_key"] = ""
+            m["codex_cli_base"] = new_base
+            _PROV_MODELS_CACHE.pop("codex-cli", None)
+        if "claude_code_cli_base" in patch:
+            # Cùng luật: khoá thuộc về địa chỉ cũ, không mang sang địa chỉ mới.
+            new_base = str(patch["claude_code_cli_base"] or "").strip().rstrip("/")
+            if new_base != (m.get("claude_code_cli_base") or "") and not (
+                    patch.get("claude_code_cli_key") and
+                    not str(patch["claude_code_cli_key"]).startswith("••••")):
+                m["claude_code_cli_key"] = ""
+            m["claude_code_cli_base"] = new_base
+            _PROV_MODELS_CACHE.pop("claude-code-cli", None)
+        if "codex_cli_name" in patch:
+            m["codex_cli_name"] = str(patch["codex_cli_name"] or "").strip()
+        if "claude_code_cli_name" in patch:
+            m["claude_code_cli_name"] = str(patch["claude_code_cli_name"] or "").strip()
         # Ngắt kết nối 1 provider (xoá key). Nếu nó đang là MAIN → quay về Claude Code CLI để chat không gãy.
         if patch.get("clear_key"):
             d = _provider_def(patch["clear_key"])
@@ -7710,6 +7846,16 @@ async def settings_set(section: str = Form(...), data: str = Form("{}")):
                     if patch["clear_key"] == "openai-compat":
                         m.setdefault("catalog", {}).pop("openai-compat", None)
                     _PROV_MODELS_CACHE.pop(patch["clear_key"], None)
+                if patch["clear_key"] == "codex-cli":
+                    # Ngắt thẻ Codex CLI: mất địa chỉ là mất cả khoá + danh mục đã nhớ.
+                    m["codex_cli_key"] = ""
+                    m.setdefault("catalog", {}).pop("codex-cli", None)
+                    _PROV_MODELS_CACHE.pop("codex-cli", None)
+                if patch["clear_key"] == "claude-code-cli":
+                    # Ngắt thẻ Claude Code CLI: y hệt thẻ Codex CLI.
+                    m["claude_code_cli_key"] = ""
+                    m.setdefault("catalog", {}).pop("claude-code-cli", None)
+                    _PROV_MODELS_CACHE.pop("claude-code-cli", None)
                 if _effective_main(cfg).get("provider") == patch["clear_key"]:
                     _set_main_model(cfg, "anthropic-cli", m.get("claude_model") or "opus")
         # Gói Claude Code xác thực bằng gì: phiên subscription sẵn có, hay API key riêng.
@@ -8433,6 +8579,30 @@ async def _fetch_provider_models(provider, m):
         return ids
     if provider == "anthropic-compat":
         return await _anthropic_compat_models(m)
+    if provider == "codex-cli":
+        # Cổng OpenAI-format của thẻ Codex CLI: tên đã lưu trước, rồi LIVE từ {base}/models
+        # (_openai_list_models tự thử cả {base}/v1). Không có địa chỉ thì chưa có gì để hỏi.
+        base = (m.get("codex_cli_base") or "").strip()
+        if not base:
+            return None
+        key = (m.get("codex_cli_key") or "").strip() or "none"
+        got = await _openai_list_models(base, key)
+        ids = sorted(got["ids"])
+        if not ids and got["why"]:
+            raise _NoModelList(got["why"])
+        return ids or None
+    if provider == "claude-code-cli":
+        # Cùng luật với codex-cli: 9router (và tổng đài cùng loại) phục vụ /models định dạng
+        # OpenAI ở cùng Base URL, nên hỏi đúng đường đó dù chat đi định dạng Anthropic.
+        base = (m.get("claude_code_cli_base") or "").strip()
+        if not base:
+            return None
+        key = (m.get("claude_code_cli_key") or "").strip() or "none"
+        got = await _openai_list_models(base, key)
+        ids = sorted(got["ids"])
+        if not ids and got["why"]:
+            raise _NoModelList(got["why"])
+        return ids or None
     if provider == "ollama":
         key = m.get("ollama_key")
         if not key:
@@ -8525,7 +8695,7 @@ def _remember_catalog(cfg, d, ids):
         return
     # Chặn phình settings.json (OpenRouter vài trăm model). Endpoint tự khai thì giữ đủ: cắt ở 50
     # là thẻ báo "50 model" sai sự thật với proxy có nhiều hơn.
-    keep = list(ids if key in ("openai-compat", "anthropic-compat") else ids[:50])
+    keep = list(ids if key in ("openai-compat", "anthropic-compat", "codex-cli", "claude-code-cli") else ids[:50])
     if ((cfg.get("model") or {}).get("catalog") or {}).get(key) == keep:
         return
     # 2026-11-13: `cfg` was read BEFORE the provider was asked, and that call can take 20 seconds. Writing that
@@ -8585,6 +8755,40 @@ def _vi_sao_khong_co_model(provider: str, m: dict, cause: str = "") -> str:
                              "xem lỗi cụ thể.",
                              "Could not reach Ollama at the saved address. Open the Models page, Local Model "
                              "tab, to see the exact error.")
+    if provider == "codex-cli":
+        base = (m.get("codex_cli_base") or "").strip()
+        if not base:
+            return localefmt.chu("Chưa đặt Base URL cho Codex CLI.", "No Base URL set for Codex CLI.")
+        if not find_codex_cli():
+            return localefmt.chu(
+                "Chưa có Codex CLI trên máy - thẻ này chạy Codex bản chính thức qua endpoint tự khai, "
+                "nên cần binary `codex`. Cài bằng `npm i -g @openai/codex` rồi bấm lại.",
+                "Codex CLI is not installed - this card runs the official Codex through your own endpoint, "
+                "so the `codex` binary is needed. Install it with `npm i -g @openai/codex`, then try again.")
+        host, why = adv_keys.host(base), (f" ({cause})" if cause else "")
+        if cause in ("HTTP 401", "HTTP 403"):
+            return localefmt.chu(f"{host} từ chối API key{why}. Mở trang Models, thẻ Codex CLI, dán lại key.",
+                                 f"{host} refused the API key{why}. Open the Models page, the Codex CLI card, "
+                                 "then paste the key again.")
+        return localefmt.chu(f"{host} không trả danh sách model{why}. Kiểm tra Base URL đã tính tới /v1 chưa.",
+                             f"{host} did not return a model list{why}. Check that the Base URL goes up to /v1.")
+    if provider == "claude-code-cli":
+        base = (m.get("claude_code_cli_base") or "").strip()
+        if not base:
+            return localefmt.chu("Chưa đặt Base URL cho Claude Code CLI.", "No Base URL set for Claude Code CLI.")
+        if not find_claude_cli():
+            return localefmt.chu(
+                "Chưa có Claude Code CLI trên máy - thẻ này chạy `claude` bản chính thức qua endpoint tự khai, "
+                "nên cần binary `claude`. Cài bằng `npm i -g @anthropic-ai/claude-code` rồi bấm lại.",
+                "Claude Code CLI is not installed - this card runs the official `claude` through your own endpoint, "
+                "so the `claude` binary is needed. Install it with `npm i -g @anthropic-ai/claude-code`, then try again.")
+        host, why = adv_keys.host(base), (f" ({cause})" if cause else "")
+        if cause in ("HTTP 401", "HTTP 403"):
+            return localefmt.chu(f"{host} từ chối API key{why}. Mở trang Models, thẻ Claude Code CLI, dán lại key.",
+                                 f"{host} refused the API key{why}. Open the Models page, the Claude Code CLI card, "
+                                 "then paste the key again.")
+        return localefmt.chu(f"{host} không trả danh sách model{why}. Kiểm tra Base URL đã tính tới /v1 chưa.",
+                             f"{host} did not return a model list{why}. Check that the Base URL goes up to /v1.")
     if provider in adv_keys.PROVIDERS:
         card = _card_label(d)
         base = (m.get(adv_keys._SPEC[provider]["legacy"] + "_base") or "").strip()
@@ -21168,6 +21372,191 @@ async def _chat_socket(ws):
                         "type": "response", "content": final_text, "engine": "antigravity-cli",
                         "model": actual_model or "", "session_id": conv_sid,
                         **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache)}))
+            elif prov == "codex-cli":
+                # ===== Thẻ CODEX CLI: Codex bản chính thức qua endpoint + key tự khai (9router...) =====
+                # Cùng engine với openai-oauth nhưng KHÔNG dùng phiên ChatGPT: model_provider
+                # + http_headers.Authorization được ghi đè qua extra_config (codex_gateway_config),
+                # nên /v1/responses của cổng nhận lượt. extra_config chạm cả exec lẫn app-server.
+                steer_inbox.INBOX.set_live(conv_sid, codex_steer.enabled())
+                actual_model = api_model or ""
+                sysprompt, _sub_plan = await _subscription_system_prompt("codex", actual_model, kind)
+                if not find_codex_cli():
+                    final_text = ("⚠ Chưa cài Codex CLI trên máy này. Cài một lần:\n\n"
+                                  "`npm install -g @openai/codex`\n\n"
+                                  "Thẻ Codex CLI chạy binary Codex bản chính thức qua endpoint đã khai, "
+                                  "nên cần binary `codex` dù không cần đăng nhập ChatGPT.")
+                    await ws.send_text(json.dumps({
+                        "type": "response", "content": final_text, "engine": "codex-cli",
+                        "model": actual_model, "session_id": conv_sid,
+                        **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache)}))
+                else:
+                    ccli = CodexCLI(cwd=_cwd_luot_chat(_row0, brain), model=actual_model or None,
+                                    tag=turn_tag, instructions=sysprompt)
+                    ccli.steer = True
+                    ccli.transport = "ws"   # cổng tự khai không phải chatgpt.com: bỏ provider http dựng sẵn
+                    ccli.extra_config[:] = claude_cli.codex_gateway_config(
+                        mcfg.get("codex_cli_name") or "Codex CLI",
+                        (mcfg.get("codex_cli_base") or "").strip(),
+                        (mcfg.get("codex_cli_key") or "").strip())
+                    # Hub vẫn trỏ BRAIN kể cả khi cwd là repo - xem chú thích ở nhánh ChatGPT.
+                    _apply_codex_hub(ccli, _brain_root(brain))
+                    _codex_fast(ccli)
+                    stored_codex_thread = (_row0.get("codex_thread_id") or "").strip()
+                    _codex_cur = _codex_do_sau(ccli, reasoning, user_message)
+                    _codex_raw = [{"role": _m["role"], "content": _m["content"]}
+                                  for _m in (await asyncio.to_thread(store.get_messages, conv_sid))[:-1]
+                                  if _m["role"] in ("user", "assistant") and _m.get("content")]
+                    _codex_prompt = (_codex_cur if stored_codex_thread else
+                                     compaction.bootstrap_prompt(_codex_raw, _codex_cur,
+                                                                 summary=_row0.get("compact_summary") or ""))
+                    _CONTEXT_RUNTIME.observe_payload(
+                        runtime_trace,
+                        [{"role": "system", "content": sysprompt},
+                         {"role": "user", "content": _codex_prompt}],
+                        provider="codex-cli", model=actual_model or "")
+
+                    async def _consume_gateway(prompt, suppress_resume_error=False):
+                        nonlocal final_text, _ctx_in, _ctx_cache
+                        resume_failed = False
+                        async for ev in ccli.query(prompt):
+                            et = ev["type"]
+                            if et == "session":
+                                if ev.get("session_id"):
+                                    await asyncio.to_thread(store.set_codex_thread_id, conv_sid, ev["session_id"])
+                            elif et == "progress":
+                                await ws.send_text(json.dumps({"type": "tool_call", "tool": ev.get("name", ""),
+                                                               "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
+                                                               "content": f"⚙ {ev.get('name', '')}"}))
+                            elif et == "tool_call" and ev.get("id"):
+                                await ws.send_text(json.dumps({"type": "tool_result", "content":
+                                                               str((ev.get("item") or {}).get("aggregated_output") or "")[:200]}))
+                            elif et == "text":
+                                final_text += ev["content"]
+                                await ws.send_text(json.dumps({"type": "stream", "content": ev["content"], "tts": False}))
+                            elif et == "final":
+                                final_text = ev.get("content") or final_text
+                                if ev.get("session_id"):
+                                    await asyncio.to_thread(store.set_codex_thread_id, conv_sid, ev["session_id"])
+                                _ctx_in += int(ev.get("tokens_in", 0) or 0)
+                                _ctx_cache += int(ev.get("tokens_cache_read", 0) or 0)
+                                usage_store.record("codex-cli", actual_model, ev.get("tokens_in", 0), ev.get("tokens_out", 0))
+                            elif et == "retry":
+                                await ws.send_text(json.dumps({
+                                    "type": "status", "content": claude_cli.cau_ket_noi_lai(ev.get("content"))}))
+                            elif et == "error":
+                                if ev.get("resume_failed"):
+                                    resume_failed = True
+                                    if suppress_resume_error:
+                                        continue
+                                await ws.send_text(_limit_frame(ev.get("content") or "", "codex-cli", actual_model or ""))
+                        return resume_failed
+
+                    _gateway_resume_failed = await _consume_gateway(
+                        _codex_prompt, suppress_resume_error=bool(stored_codex_thread))
+                    if stored_codex_thread and _gateway_resume_failed and not final_text:
+                        ccli.session_id = None
+                        await _consume_gateway(compaction.bootstrap_prompt(
+                            _codex_raw, _codex_cur, summary=_row0.get("compact_summary") or ""))
+                    final_text = _chuan_hoa_link_file(_brain_root(brain), final_text)
+                    await ws.send_text(json.dumps({
+                        "type": "response", "content": final_text, "engine": "codex-cli",
+                        "model": actual_model, "session_id": conv_sid,
+                        **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache)}))
+            elif prov == "claude-code-cli":
+                # ===== Thẻ CLAUDE CODE CLI: `claude` bản chính thức qua endpoint + key tự khai =====
+                # Cùng engine với nhánh Claude thường nhưng env tiến trình `claude` mang thêm
+                # ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN (claude_gateway_env qua env_override),
+                # nên tổng đài Anthropic-format (9router...) nhận lượt mà không đụng ~/.claude.
+                # Shell, MCP hub, tool native, resume mạch: giữ nguyên như Claude Code thường.
+                actual_model = api_model or ""
+                sysprompt, _sub_plan = await _subscription_system_prompt("cli", actual_model, kind)
+                if not find_claude_cli():
+                    final_text = ("⚠ Chưa cài Claude Code CLI trên máy này. Cài một lần:\n\n"
+                                  "`npm install -g @anthropic-ai/claude-code`\n\n"
+                                  "Thẻ Claude Code CLI chạy binary `claude` bản chính thức qua endpoint đã khai, "
+                                  "nên cần binary `claude` dù không cần đăng nhập Claude.")
+                    await ws.send_text(json.dumps({
+                        "type": "response", "content": final_text, "engine": "claude-code-cli",
+                        "model": actual_model, "session_id": conv_sid,
+                        **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache)}))
+                else:
+                    _cccli_base = (mcfg.get("claude_code_cli_base") or "").strip()
+                    _cccli_key = (mcfg.get("claude_code_cli_key") or "").strip()
+                    cli = claude_engine(system_prompt=sysprompt, cwd=_cwd_luot_chat(_row0, brain),
+                                        tag=turn_tag, model=actual_model or None)
+                    cli.env_override = claude_cli.claude_gateway_env(
+                        mcfg.get("claude_code_cli_name") or "Claude Code CLI", _cccli_base, _cccli_key)
+                    cli.session_id = _row0.get("cli_session_id") or None    # --resume đúng mạch phiên này
+                    _apply_mcp(cli, mode=_muc_quyen_luot_chat(_row0, user_message), brain=brain)
+                    _cli_fast(cli)
+                    _cc_cur = _cli_do_sau(cli, reasoning, user_message)
+                    _cc_hdr = _turn_facts_header(brain, conv_sid or "", _lang_qd.lang, first=not cli.session_id)
+                    if _cc_hdr and isinstance(_cc_cur, str):
+                        _cc_cur = _cc_hdr + "\n" + _cc_cur
+                    _cc_raw = [{"role": _m["role"], "content": _m["content"]}
+                               for _m in (await asyncio.to_thread(store.get_messages, conv_sid))[:-1]
+                               if _m["role"] in ("user", "assistant") and _m.get("content")]
+                    _cc_prompt = (_cc_cur if cli.session_id else
+                                  compaction.bootstrap_prompt(_cc_raw, _cc_cur,
+                                                              summary=_row0.get("compact_summary") or ""))
+                    _CONTEXT_RUNTIME.observe_payload(
+                        runtime_trace,
+                        [{"role": "system", "content": sysprompt},
+                         {"role": "user", "content": _cc_prompt}],
+                        provider="claude-code-cli", model=actual_model or "")
+
+                    async def _consume_ccgw(prompt, suppress_resume_error=False):
+                        nonlocal final_text, _ctx_in, _ctx_cache
+                        resume_failed = False
+                        async for ev in claude_warm.query(cli, prompt, conv_sid):
+                            et = ev.get("type")
+                            if et == "tool_call":
+                                await ws.send_text(json.dumps({
+                                    "type": "tool_call", "tool": ev.get("name", ""),
+                                    "detail": tool_label.chi_tiet(ev), **turn_plan.fields(ev),
+                                    "content": localefmt.chu(
+                                        f"⚙ Đang gọi: {ev.get('name', '')}",
+                                        f"⚙ Calling: {ev.get('name', '')}")}))
+                            elif et == "tool_result":
+                                await ws.send_text(json.dumps({
+                                    "type": "tool_result",
+                                    "content": str(ev.get("content") or "")[:200]}))
+                            elif et == "text":
+                                final_text += ev.get("content") or ""
+                                await ws.send_text(json.dumps({
+                                    "type": "stream", "content": ev.get("content") or "", "tts": False}))
+                            elif et == "final":
+                                final_text = ev.get("content") or final_text
+                                if ev.get("session_id"):
+                                    await asyncio.to_thread(store.set_cli_session_id, conv_sid, ev["session_id"])
+                                _ctx_in += int(ev.get("tokens_in", 0) or 0)
+                                _ctx_cache += int(ev.get("tokens_cache_read", 0) or 0)
+                                usage_store.record("claude-code-cli", actual_model or "",
+                                                   ev.get("tokens_in", 0), ev.get("tokens_out", 0))
+                            elif et == "error":
+                                if ev.get("resume_failed"):
+                                    resume_failed = True
+                                    if suppress_resume_error:
+                                        continue
+                                # Hint là PROVIDER ID của thẻ: mẫu trong limit_learner tự nói
+                                # engine "claude-code" nên câu dịch vẫn đúng gói; còn
+                                # _note_pin_limit ghim đúng THẺ NÀY qua _LIMIT_ENGINE_PROVIDER.
+                                await ws.send_text(_limit_frame(
+                                    ev.get("content") or "", "claude-code-cli", actual_model or ""))
+                        return resume_failed
+
+                    _cc_co_mach = bool(cli.session_id)
+                    _cc_resume_failed = await _consume_ccgw(_cc_prompt, suppress_resume_error=_cc_co_mach)
+                    if _cc_co_mach and _cc_resume_failed and not final_text:
+                        # Mạch cũ không còn: mồi lại từ kho phiên, cùng cách nhánh Claude thường.
+                        cli.session_id = None
+                        await _consume_ccgw(compaction.bootstrap_prompt(
+                            _cc_raw, _cc_cur, summary=_row0.get("compact_summary") or ""))
+                    final_text = _chuan_hoa_link_file(_brain_root(brain), final_text)
+                    await ws.send_text(json.dumps({
+                        "type": "response", "content": final_text, "engine": "claude-code-cli",
+                        "model": actual_model, "session_id": conv_sid,
+                        **_ctx_frame(runtime_trace, _ctx_in, _ctx_cache)}))
             elif prov == "openai-oauth":
                 if not codex_steer.enabled():
                     # 0.206.0: `codex exec` is one-shot, messages wait for the end. Since 0.213.0 the chat engine runs
@@ -24686,6 +25075,106 @@ async def anthropic_compat_connect(request: Request):
     return {"ok": True, "models": len(ids), "listed": bool(live), "id": g_id}
 
 
+@app.post("/provider/codex-cli/connect")
+async def codex_cli_connect(request: Request):
+    """Save the name, Base URL and key of the Codex CLI card, AFTER checking them.
+
+    Same rule as OpenAI Compatible: the URL is typed by the owner, so saving blind would show
+    "Connected" with a wrong address. The check asks {base}/models (the seller's own list); no
+    list is fine - Codex itself needs no list to run, so only an unreachable host or a refused
+    key is an error here. A blank key is allowed (an endpoint with no auth)."""
+    data = await request.json()
+    base = str(data.get("base") or "").strip().rstrip("/")
+    if not base.lower().startswith(("http://", "https://")):
+        return {"ok": False, "error": localefmt.chu("Base URL phải bắt đầu bằng http:// hoặc https://",
+                                                    "Base URL must start with http:// or https://")}
+    key = str(data.get("key") or "").strip()
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "error": localefmt.chu("Cần tên thẻ, ví dụ: 9router.",
+                                                    "A card name is needed, e.g. 9router.")}
+    # A blank input reuses the saved secret, same endpoint only (same rule as OpenAI Compatible:
+    # reusing it for another URL would send that secret to the new host during this check).
+    saved = (cfgmod.read_settings().get("model") or {})
+    if not key and saved.get("codex_cli_base") == base:
+        key = (saved.get("codex_cli_key") or "").strip()
+    got = await _openai_list_models(base, key or "none")
+    if got["status"] in (401, 403):
+        return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {got['status']}). Chưa lưu gì.",
+                                                    f"Invalid API key (HTTP {got['status']}). Nothing was saved.")}
+    if not got["ids"] and not got["status"]:
+        return {"ok": False, "error": localefmt.chu(f"Không gọi được {base}/models ({got['why']}). Kiểm tra lại Base URL.",
+                                                    f"Could not reach {base}/models ({got['why']}). Check the Base URL.")}
+    live_base = got["base"] if got["ids"] else base   # the list under {base}/v1 is the address chat needs too
+    if not find_codex_cli():
+        return {"ok": False, "error": localefmt.chu(
+            "Chưa có Codex CLI trên máy - cài bằng `npm i -g @openai/codex` rồi bấm lại. Chưa lưu gì.",
+            "Codex CLI is not installed - install it with `npm i -g @openai/codex`, then try again. Nothing was saved.")}
+    with cfgmod._SETTINGS_LOCK:
+        cfg = cfgmod.read_settings()
+        m = cfg.setdefault("model", {})
+        m["codex_cli_name"] = name
+        m["codex_cli_base"] = live_base
+        if key:
+            m["codex_cli_key"] = key
+        cfgmod.write_settings(cfg)
+    _PROV_MODELS_CACHE.pop("codex-cli", None)
+    ids = sorted(got["ids"])
+    if ids:
+        _remember_catalog(cfg, _provider_def("codex-cli"), ids)
+    return {"ok": True, "models": len(ids), "listed": bool(ids)}
+
+
+@app.post("/provider/claude-code-cli/connect")
+async def claude_code_cli_connect(request: Request):
+    """Save the name, Base URL and key of the Claude Code CLI card, AFTER checking them.
+
+    Same rule as the Codex CLI card: the URL is typed by the owner, so saving blind would show
+    "Connected" with a wrong address. The check asks {base}/models (OpenAI-format listing; 9router
+    and its kind serve it next to the Anthropic Messages endpoint chat actually runs on). A blank
+    key is allowed (an endpoint with no auth). The `claude` binary must exist: this card runs it."""
+    data = await request.json()
+    base = str(data.get("base") or "").strip().rstrip("/")
+    if not base.lower().startswith(("http://", "https://")):
+        return {"ok": False, "error": localefmt.chu("Base URL phải bắt đầu bằng http:// hoặc https://",
+                                                    "Base URL must start with http:// or https://")}
+    key = str(data.get("key") or "").strip()
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "error": localefmt.chu("Cần tên thẻ, ví dụ: 9router.",
+                                                    "A card name is needed, e.g. 9router.")}
+    # A blank input reuses the saved secret, same endpoint only.
+    saved = (cfgmod.read_settings().get("model") or {})
+    if not key and saved.get("claude_code_cli_base") == base:
+        key = (saved.get("claude_code_cli_key") or "").strip()
+    got = await _openai_list_models(base, key or "none")
+    if got["status"] in (401, 403):
+        return {"ok": False, "error": localefmt.chu(f"API key không hợp lệ (HTTP {got['status']}). Chưa lưu gì.",
+                                                    f"Invalid API key (HTTP {got['status']}). Nothing was saved.")}
+    if not got["ids"] and not got["status"]:
+        return {"ok": False, "error": localefmt.chu(f"Không gọi được {base}/models ({got['why']}). Kiểm tra lại Base URL.",
+                                                    f"Could not reach {base}/models ({got['why']}). Check the Base URL.")}
+    live_base = got["base"] if got["ids"] else base
+    if not find_claude_cli():
+        return {"ok": False, "error": localefmt.chu(
+            "Chưa có Claude Code CLI trên máy - cài bằng `npm i -g @anthropic-ai/claude-code` rồi bấm lại. Chưa lưu gì.",
+            "Claude Code CLI is not installed - install it with `npm i -g @anthropic-ai/claude-code`, then try again. "
+            "Nothing was saved.")}
+    with cfgmod._SETTINGS_LOCK:
+        cfg = cfgmod.read_settings()
+        m = cfg.setdefault("model", {})
+        m["claude_code_cli_name"] = name
+        m["claude_code_cli_base"] = live_base
+        if key:
+            m["claude_code_cli_key"] = key
+        cfgmod.write_settings(cfg)
+    _PROV_MODELS_CACHE.pop("claude-code-cli", None)
+    ids = sorted(got["ids"])
+    if ids:
+        _remember_catalog(cfg, _provider_def("claude-code-cli"), ids)
+    return {"ok": True, "models": len(ids), "listed": bool(ids)}
+
+
 @app.get("/ollama-local/specs")
 async def ollama_local_get_specs():
     ep, _ = _ol_cfg()
@@ -27038,6 +27527,15 @@ def _bot_stream_co_tool(prov, key, model, messages, reasoning, tools, route,
             return engine.openai_compat_chat_with_mcp(key, model, messages, reasoning, tools, route)
         if prov == "anthropic-compat":
             return engine.anthropic_compat_chat_with_mcp(key, model, messages, reasoning, tools, route)
+        if prov == "codex-cli":
+            # Thẻ Codex CLI: Codex là agent có shell + MCP nhờ extra_config trỏ tới cổng tự khai,
+            # `tools` chỉ dùng để BIẾT lượt có công cụ hay không - hub đã đấu qua profile của nó.
+            return _codex_cli_sub_stream(model, messages, reasoning, brain=brain,
+                                         tag=tag_bot, mode=muc_quyen)
+        if prov == "claude-code-cli":
+            # Thẻ Claude Code CLI: `claude` là agent có shell + MCP nhờ env_override trỏ tới cổng
+            # tự khai, cùng luật với codex-cli ngay trên.
+            return _claude_code_cli_sub_stream(model, messages, reasoning, brain=brain, tag=tag_bot)
         if prov == "openai-oauth":
             creds = openai_oauth.valid_creds() or {}
             return engine.responses_with_mcp(creds.get("access_token", ""), creds.get("account_id", ""),
@@ -27062,7 +27560,8 @@ class _BoQua(Exception):
 
 # Engines of the owner's channel that open an image FILE themselves (Claude Code's Read, Codex's image viewer). A full-access
 # bot on any other engine gets the borrowed-eyes description added to the turn as well (0.94.0).
-_MO_ANH_BANG_CONG_CU = ("anthropic-cli", "openai-oauth")
+# claude-code-cli: cùng binary `claude`, cùng tool Read nên cùng tự mở được file ảnh.
+_MO_ANH_BANG_CONG_CU = ("anthropic-cli", "openai-oauth", "claude-code-cli")
 
 
 def _bot_full_prompt(brain, sys_bot, lang, conv_sid=""):
@@ -27555,6 +28054,107 @@ async def _tg_answer_engine(text, meta, progress, *, chat_id, sess, brain, mcfg,
             return "(không có nội dung)"
         return {"text": channel_context.strip_control_blocks(out), "files": []}
 
+    if prov == "codex-cli":
+        # Thẻ Codex CLI trên Telegram: cùng khuôn nhánh Antigravity ngay trên - giữ engine trong
+        # `sess`, mồi transcript đúng một lượt khi chưa có mạch, resume native các lượt sau.
+        actual_model = api_model or None
+        if not find_codex_cli():
+            return ("⚠ Chưa cài Codex CLI trên máy chạy Javis. Cài một lần:\n"
+                    "`npm install -g @openai/codex`\n"
+                    "Thẻ Codex CLI chạy binary Codex qua endpoint đã khai nên cần binary `codex`.")
+        ccli = sess.get("codex_gateway")
+        if ccli is None:
+            ccli = CodexCLI(cwd=_brain_root(brain), model=actual_model,
+                            tag=f"telegram:{chat_id}", instructions=sysprompt)
+            sess["codex_gateway"] = ccli
+        else:
+            ccli.cwd = _brain_root(brain)
+            ccli.model = actual_model
+            ccli.instructions = sysprompt
+        mcfg_tg = cfgmod.read_settings().get("model", {}) or {}
+        ccli.transport = "ws"
+        ccli.extra_config[:] = claude_cli.codex_gateway_config(
+            mcfg_tg.get("codex_cli_name") or "Codex CLI",
+            (mcfg_tg.get("codex_cli_base") or "").strip(),
+            (mcfg_tg.get("codex_cli_key") or "").strip() or "none")
+        _apply_codex_hub(ccli, _brain_root(brain))
+        ccli.steer = True
+        _hoi = text
+        if not getattr(ccli, "session_id", None):
+            _raw_cu, _tom_cu = _tg_lich_su_kho(store, conv_sid, text)
+            _hoi = compaction.codex_bootstrap_prompt(_raw_cu, _codex_do_sau(ccli, reasoning, text),
+                                                     summary=_tom_cu)
+        else:
+            _codex_do_sau(ccli, reasoning, text)
+        out, loi = "", []
+        async for ev in ccli.query(_hoi):
+            et = ev.get("type")
+            if et == "tool_call":
+                await _p(f"⚙ Đang gọi: {ev.get('name', '')}")
+            elif et == "text":
+                out += ev.get("content") or ""
+            elif et == "final":
+                out = ev.get("content") or out
+            elif et == "error":
+                if not ev.get("resume_failed"):
+                    loi.append(str(ev.get("content") or ""))
+        if not out and loi:
+            _noi = _subscription_limit_message(loi[0], "codex-cli")
+            return _noi or ("⚠ Codex CLI lỗi: " + loi[0][:400])
+        if not out:
+            return "(không có nội dung)"
+        return {"text": channel_context.strip_control_blocks(out), "files": []}
+
+    if prov == "claude-code-cli":
+        # Thẻ Claude Code CLI trên Telegram: cùng khuôn nhánh Codex CLI ngay trên - giữ engine
+        # trong `sess`, mồi transcript đúng một lượt khi chưa có mạch, resume native các lượt sau.
+        actual_model = api_model or None
+        if not find_claude_cli():
+            return ("⚠ Chưa cài Claude Code CLI trên máy chạy Javis. Cài một lần:\n"
+                    "`npm install -g @anthropic-ai/claude-code`\n"
+                    "Thẻ Claude Code CLI chạy binary `claude` qua endpoint đã khai nên cần binary `claude`.")
+        ccg = sess.get("claude_gateway")
+        if ccg is None or getattr(ccg, "cwd", None) != _brain_root(brain):
+            ccg = claude_engine(system_prompt=sysprompt, cwd=_brain_root(brain),
+                                tag=f"telegram:{chat_id}", model=actual_model)
+            sess["claude_gateway"] = ccg
+        else:
+            ccg.cwd = _brain_root(brain)
+            ccg.model = actual_model
+            ccg.system_prompt = sysprompt
+        mcfg_tg = cfgmod.read_settings().get("model", {}) or {}
+        ccg.env_override = claude_cli.claude_gateway_env(
+            mcfg_tg.get("claude_code_cli_name") or "Claude Code CLI",
+            (mcfg_tg.get("claude_code_cli_base") or "").strip(),
+            (mcfg_tg.get("claude_code_cli_key") or "").strip())
+        _apply_mcp(ccg, brain=brain)
+        _hoi = text
+        if not getattr(ccg, "session_id", None):
+            _raw_cu, _tom_cu = _tg_lich_su_kho(store, conv_sid, text)
+            _hoi = compaction.bootstrap_prompt(_raw_cu, _cli_do_sau(ccg, reasoning, text),
+                                               summary=_tom_cu)
+        else:
+            _cli_do_sau(ccg, reasoning, text)
+        out, loi = "", []
+        async for ev in ccg.query(_hoi):
+            et = ev.get("type")
+            if et == "tool_call":
+                await _p(f"⚙ Đang gọi: {ev.get('name', '')}")
+            elif et == "text":
+                out += ev.get("content") or ""
+            elif et == "final":
+                out = ev.get("content") or out
+            elif et == "error":
+                if not ev.get("resume_failed"):
+                    loi.append(str(ev.get("content") or ""))
+        if not out and loi:
+            # Hint là provider id: mẫu vẫn khớp câu của Claude Code, nhãn điểm đúng thẻ này.
+            _noi = _subscription_limit_message(loi[0], "claude-code-cli")
+            return _noi or ("⚠ Claude Code CLI lỗi: " + loi[0][:400])
+        if not out:
+            return "(không có nội dung)"
+        return {"text": channel_context.strip_control_blocks(out), "files": []}
+
     if prov == "openai-oauth":
         # Telegram dùng cùng Codex CLI + MCP native như dashboard. Trước đây nhánh OAuth
         # rơi vào Responses chat-thuần nên model nói đúng là phiên không có tool.
@@ -27941,6 +28541,8 @@ _TG_NHAN_NGAN = {
     "ollama": "Ollama",
     "openai-compat": "OpenAI Compat",
     "anthropic-compat": "Claude Compat",
+    "codex-cli": "Codex CLI",
+    "claude-code-cli": "Claude Code CLI",
 }
 _TG_MODEL_LISTS = {}   # provider -> list model id ĐÃ render (index nút ổn định khi bấm)
 _TG_PAGE = 8           # model mỗi trang (lưới 2 cột x 4 hàng)
@@ -27975,6 +28577,10 @@ def _tg_prov_ready(pid, m):
         return bool((m.get("openai_compat_base") or "").strip())
     if pid == "anthropic-compat":
         return bool((m.get("anthropic_compat_base") or "").strip())
+    if pid == "codex-cli":
+        return bool((m.get("codex_cli_base") or "").strip()) and bool(find_codex_cli())
+    if pid == "claude-code-cli":
+        return bool((m.get("claude_code_cli_base") or "").strip()) and bool(find_claude_cli())
     kf = d.get("key_field")
     return True if kf is None else bool(m.get(kf))
 

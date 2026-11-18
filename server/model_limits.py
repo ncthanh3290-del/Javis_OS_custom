@@ -151,6 +151,8 @@ def blocked_hint(provider: str, model: str, needed_tokens: int,
 # Nhãn người-đọc-được cho các engine chạy bằng gói thuê bao.
 SUBSCRIPTION_LABEL = {
     "claude-code": "gói Claude (Claude Code)",
+    # Thẻ Claude Code CLI (tổng đài tự khai): hint là provider id nên engine tới đây là id này.
+    "claude-code-cli": "gói qua tổng đài Claude Code CLI",
     "codex": "gói ChatGPT (Codex)",
     "antigravity-cli": "gói Google (Antigravity CLI)",
     "grok-cli": "gói xAI (SuperGrok / X Premium+)",

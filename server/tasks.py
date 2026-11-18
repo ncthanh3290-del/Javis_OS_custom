@@ -67,6 +67,8 @@ LIMIT_UNKNOWN_WAIT_SECONDS = 30 * 60
 # ngày 30/10/2026 và tên gói còn đổi tiếp.
 _TEN_GOI = {
     "claude-code": "Claude",
+    # Thẻ Claude Code CLI (tổng đài tự khai): hint là provider id nên engine tới đây là id này.
+    "claude-code-cli": "tổng đài Claude Code CLI",
     "codex": "ChatGPT",
     "grok-cli": "SuperGrok / X Premium",
     "antigravity-cli": "Google Antigravity",

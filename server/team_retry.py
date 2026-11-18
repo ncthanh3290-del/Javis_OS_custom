@@ -44,7 +44,9 @@ TRANSIENT_RE = re.compile(
     r"|service unavailable|bad gateway|gateway time-?out|server error|api_error|internal error"
     r"|connection (?:reset|refused|error|aborted|closed|lost)|econnreset|econnrefused|network|socket hang up"
     r"|read timed out|timed out while|try again", re.I)
-PLAN_NAMES = {"claude-code": "Claude", "codex": "ChatGPT", "grok-cli": "SuperGrok", "antigravity-cli": "Google"}
+PLAN_NAMES = {"claude-code": "Claude", "codex": "ChatGPT", "grok-cli": "SuperGrok", "antigravity-cli": "Google",
+              # Thẻ Claude Code CLI (tổng đài tự khai): hint là provider id nên engine tới đây là id này.
+              "claude-code-cli": "tổng đài Claude Code CLI"}
 
 
 def max_retries() -> int:
