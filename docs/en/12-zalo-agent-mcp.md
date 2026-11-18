@@ -47,7 +47,7 @@ follows its official npm releases. Since 0.83.0 Javis runs this build instead of
 
 The **Guide on GitHub** button in the Zalo card always opens this documentation page:
 
-<https://github.com/blogminhquy/javis-os/blob/main/docs/en/12-zalo-agent-mcp.md>
+<https://github.com/ncthanh3290-del/Javis_OS_custom/blob/main/docs/en/12-zalo-agent-mcp.md>
 
 ## Importing old messages into the Inbox (since 0.174.0)
 

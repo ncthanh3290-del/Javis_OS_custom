@@ -47,7 +47,7 @@ guard.GRACE = 120
 guard.log = lambda msg: None
 
 OLD_IMAGE, NEW_IMAGE = "sha256:" + "1" * 64, "sha256:" + "2" * 64
-REF = "ghcr.io/blogminhquy/javis-os:latest"
+REF = "ghcr.io/ncthanh3290-del/javis_os_custom:latest"
 IMAGE_CONFIG = {   # what the old image itself sets (Dockerfile ENV, CMD, VOLUME, EXPOSE, LABEL)
     "Env": ["PATH=/usr/local/bin:/usr/bin", "JAVIS_PORT=7777", "JAVIS_CODEX_SANDBOX=off"],
     "Cmd": ["sh", "-c", "python -m uvicorn main:app"],
@@ -285,7 +285,7 @@ g.check()
 clock.t += 121
 check("image missing: pulled, then created", g.check() == "recreated" and d.made("/images/create"))
 check("pull asks for the repository and the tag separately",
-      d.made("/images/create")[0][1] == "/images/create?fromImage=ghcr.io%2Fblogminhquy%2Fjavis-os&tag=latest")
+      d.made("/images/create")[0][1] == "/images/create?fromImage=ghcr.io%2Fncthanh3290-del%2Fjavis_os_custom&tag=latest")
 
 del d.containers["javis"]
 g.check()

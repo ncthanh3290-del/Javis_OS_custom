@@ -10,11 +10,11 @@ Javis OS turns **Claude, ChatGPT, Gemini, Grok** and the models you choose into 
 
 **🌐 Website: [javisos.com](https://javisos.com)** · Open source · Self-hosted · 14 AI providers
 
-[![GitHub stars](https://img.shields.io/github/stars/blogminhquy/javis-os?style=flat&logo=github&label=stars)](https://github.com/blogminhquy/javis-os/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/ncthanh3290-del/Javis_OS_custom?style=flat&logo=github&label=stars)](https://github.com/ncthanh3290-del/Javis_OS_custom/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
-[![Last commit](https://img.shields.io/github/last-commit/blogminhquy/javis-os?color=f97316)](https://github.com/blogminhquy/javis-os/commits/main)
+[![Last commit](https://img.shields.io/github/last-commit/ncthanh3290-del/Javis_OS_custom?color=f97316)](https://github.com/ncthanh3290-del/Javis_OS_custom/commits/main)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)](requirements.txt)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/blogminhquy/javis-os/pkgs/container/javis-os)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white)](https://github.com/ncthanh3290-del/Javis_OS_custom/pkgs/container/javis-os)
 [![MCP](https://img.shields.io/badge/tools-Model%20Context%20Protocol-8b5cf6)](https://modelcontextprotocol.io)
 
 <!-- flags:start -->
@@ -53,9 +53,9 @@ Javis OS turns **Claude, ChatGPT, Gemini, Grok** and the models you choose into 
 
 | Machine | One command installs everything |
 |---|---|
-| **Linux / macOS** | `git clone https://github.com/blogminhquy/javis-os.git javis && cd javis && chmod +x install.sh && ./install.sh` |
-| **Windows** | `git clone https://github.com/blogminhquy/javis-os.git javis; cd javis; powershell -ExecutionPolicy Bypass -File install.ps1` |
-| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml && docker compose up -d` |
+| **Linux / macOS** | `git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git javis && cd javis && chmod +x install.sh && ./install.sh` |
+| **Windows** | `git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git javis; cd javis; powershell -ExecutionPolicy Bypass -File install.ps1` |
+| **Docker** | `curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml && docker compose up -d` |
 
 Then open **http://localhost:7777**. The installer sets up Python, the four subscription CLI brains (`claude`, `codex`, `agy`, `grok`) and a `.env`, then starts the server. You sign in to each brain **on the Models page of the dashboard**, no more typing commands.
 
@@ -148,7 +148,7 @@ Pick the brain on the **Models** page and change it whenever you like. Javis sup
 Every brain can call your connected MCP servers, read and write the brain, run skills, queue Kanban work, and create agents, workflows, loops and reminders. The CLI engines additionally run **shell commands**, **fetch and search the web**, and **spawn parallel sub-agents**.
 
 > [!WARNING]
-> **A note before letting a subscription run background work.** Anthropic scopes Claude Pro/Ultra to **ordinary personal use** of Claude Code. Continuous background execution (loops, reminders, Kanban jobs, chatbots), running on a VPS, or several people sharing one account fall outside that scope, so there is a risk of the account **being locked**, although Javis has no reported case so far. If it happens to you, please tell the developer through [Issues](https://github.com/blogminhquy/javis-os/issues/new/choose). Javis never reads your login token: it runs the real `claude` binary, but that does not make round-the-clock background use legitimate. To be safe, set Claude Code to run on an **API key** on the Models page, or point the **background-work model** at another provider. The same caution applies to the xAI plan. See `server/claude_auth.py`.
+> **A note before letting a subscription run background work.** Anthropic scopes Claude Pro/Ultra to **ordinary personal use** of Claude Code. Continuous background execution (loops, reminders, Kanban jobs, chatbots), running on a VPS, or several people sharing one account fall outside that scope, so there is a risk of the account **being locked**, although Javis has no reported case so far. If it happens to you, please tell the developer through [Issues](https://github.com/ncthanh3290-del/Javis_OS_custom/issues/new/choose). Javis never reads your login token: it runs the real `claude` binary, but that does not make round-the-clock background use legitimate. To be safe, set Claude Code to run on an **API key** on the Models page, or point the **background-work model** at another provider. The same caution applies to the xAI plan. See `server/claude_auth.py`.
 
 ---
 
@@ -245,7 +245,7 @@ flowchart LR
 > [!IMPORTANT]
 > Javis runs an AI brain with **full rights** on the machine. When it runs publicly (Docker, VPS, Hostinger), Javis **forces login by itself**: opening the app shows a create-account or sign-in screen, and nobody can drive it without a password.
 
-> 💻 **On your own Windows or Mac computer?** Download the installer and open it like any app: [JavisOS-Setup.exe](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-Setup.exe) (Windows 10/11) or [JavisOS-macOS.dmg](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-macOS.dmg) (macOS 11+). It checks what is missing (Git, Python, Node, AI brains), installs it, and leaves a JAVIS OS icon to click. Steps: [QUICKSTART.en.md](QUICKSTART.en.md).
+> 💻 **On your own Windows or Mac computer?** Download the installer and open it like any app: [JavisOS-Setup.exe](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-Setup.exe) (Windows 10/11) or [JavisOS-macOS.dmg](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-macOS.dmg) (macOS 11+). It checks what is missing (Git, Python, Node, AI brains), installs it, and leaves a JAVIS OS icon to click. Steps: [QUICKSTART.en.md](QUICKSTART.en.md).
 
 <details open>
 <summary><b>Option 1: Hostinger Docker Manager (domain + HTTPS, one click)</b></summary>
@@ -255,7 +255,7 @@ flowchart LR
 Hostinger VPS → **Docker Manager → Compose → URL** → paste the Hostinger file and press **Deploy**:
 
 ```
-https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.hostinger.yml
+https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.hostinger.yml
 ```
 
 The **Environment** box needs only three fields: `DOMAIN_NAME`, `JAVIS_ADMIN_USER`, `JAVIS_ADMIN_PASSWORD`, plus an optional `JAVIS_AUTO_UPDATE` (set it to `true` and Javis updates itself daily).
@@ -283,7 +283,7 @@ Details and troubleshooting: [DEPLOY.en.md](DEPLOY.en.md).
 ```bash
 # Docker required (don't have it?  curl -fsSL https://get.docker.com | sh)
 mkdir javis && cd javis
-curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml
 
 docker compose run --rm javis claude auth login --claudeai   # sign in to Claude once (optional)
 docker compose up -d                                          # pull the image and run
@@ -299,7 +299,7 @@ Remote access without a domain: `docker compose --profile tunnel up -d`, then `d
 <summary><b>Option 3: Linux or macOS, no Docker</b></summary>
 
 ```bash
-git clone https://github.com/blogminhquy/javis-os.git javis && cd javis
+git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git javis && cd javis
 chmod +x install.sh && ./install.sh
 ```
 
@@ -313,7 +313,7 @@ The script installs Python, Node and the CLI brains, creates a venv, registers a
 <summary><b>Option 4: Windows (personal machine)</b></summary>
 
 ```powershell
-git clone https://github.com/blogminhquy/javis-os.git javis; cd javis
+git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git javis; cd javis
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
@@ -477,13 +477,13 @@ Bug reports, ideas, translations and pull requests are all welcome, in English o
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How the pieces fit together, and a map of the server modules |
 | [docs/dev/GLOSSARY.md](docs/dev/GLOSSARY.md) | The code base was written in Vietnamese: this decodes names like `nhac_hen` (reminder) |
 | [docs/dev/adding-a-language.md](docs/dev/adding-a-language.md) | Translating Javis into your language, step by step |
-| [Issue templates](https://github.com/blogminhquy/javis-os/issues/new/choose) | Bug report, feature request, translation offer |
+| [Issue templates](https://github.com/ncthanh3290-del/Javis_OS_custom/issues/new/choose) | Bug report, feature request, translation offer |
 
 Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security problems privately as described in [SECURITY.md](SECURITY.md).
 
 If Javis is useful to you, a ⭐ on the repo helps other people find it.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=blogminhquy/javis-os&type=Date)](https://star-history.com/#blogminhquy/javis-os&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=ncthanh3290-del/Javis_OS_custom&type=Date)](https://star-history.com/#ncthanh3290-del/Javis_OS_custom&Date)
 
 ---
 

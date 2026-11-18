@@ -218,7 +218,7 @@ check(".dmg mounts with the Javis icon (.VolumeIcon.icns + custom-icon flag)",
       ".VolumeIcon.icns" in build_dmg and "-a C" in build_dmg and "UDRW" in build_dmg)
 
 # ---- one-line installs, no SmartScreen / Gatekeeper block (0.439.1) ----
-REL = "https://github.com/blogminhquy/javis-os/releases/download/desktop/"
+REL = "https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/"
 GET_PS1 = PK / "windows" / "get-javis.ps1"
 GET_SH = PK / "macos" / "get-javis.sh"
 gps = GET_PS1.read_text(encoding="utf-8")
@@ -234,7 +234,7 @@ check("get-javis.sh only replaces the app bundle, never ~/JavisOS (the brain)",
       'rm -rf "${DEST}/JAVIS OS.app"' in gsh and not any("rm -rf" in ln and "JavisOS" in ln and ".app" not in ln
                                                          for ln in gsh.splitlines()))
 check("get-javis.sh is executable", os.access(GET_SH, os.X_OK))
-raw = "https://raw.githubusercontent.com/blogminhquy/javis-os/main/"
+raw = "https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/"
 for doc in ("QUICKSTART.md", "QUICKSTART.en.md"):
     d = (ROOT / doc).read_text(encoding="utf-8")
     check(f"{doc} gives the Windows one-liner", f"irm {raw}packaging/windows/get-javis.ps1 | iex" in d)
@@ -262,7 +262,7 @@ check("in-repo JAVIS OS.app now has the icon its Info.plist names",
       (ROOT / "JAVIS OS.app" / "Contents" / "Resources" / "javis.icns").exists())
 
 # ---- publishing and docs agree on the download links ----
-base = "https://github.com/blogminhquy/javis-os/releases/download/desktop/"
+base = "https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/"
 PUBLISH = PK / "publish-desktop.sh"
 publish = PUBLISH.read_text(encoding="utf-8")
 check("workflow publishes through packaging/publish-desktop.sh on the fixed 'desktop' release",

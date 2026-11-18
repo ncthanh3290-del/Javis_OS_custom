@@ -21,7 +21,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-REPO = "blogminhquy/javis-os"
+REPO = "ncthanh3290-del/Javis_OS_custom"
 REPO_URL = "https://github.com/" + REPO
 API_URL = "https://api.github.com/repos/" + REPO
 

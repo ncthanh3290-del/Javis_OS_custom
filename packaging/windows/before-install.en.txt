@@ -1,7 +1,7 @@
 JAVIS OS Setup: what this installer does
 
 JAVIS OS is open source (MIT license):
-https://github.com/blogminhquy/javis-os
+https://github.com/ncthanh3290-del/Javis_OS_custom
 
 CHANGES ON THIS COMPUTER
 
@@ -23,7 +23,7 @@ JAVIS OS runs on your own computer. It has no tracking and sends no usage statis
 
 On its own, Javis only downloads public files from GitHub and PyPI to see whether an update exists, and keeps the AI command-line tools up to date through their vendors' own updaters.
 
-Full text: https://github.com/blogminhquy/javis-os/blob/main/PRIVACY.md
+Full text: https://github.com/ncthanh3290-del/Javis_OS_custom/blob/main/PRIVACY.md
 
 REMOVING IT
 

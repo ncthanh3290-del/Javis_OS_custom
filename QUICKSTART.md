@@ -8,19 +8,19 @@ Chạy Javis OS trong vài phút. Chi tiết từng phần: [docs/](docs/README.
 
 Cài Javis như một ứng dụng bình thường: tải một file, bấm mở, xong thì có biểu tượng JAVIS OS để bấm vào mỗi ngày. Bộ cài tự kiểm tra máy còn thiếu gì (Git, Python, Node, các bộ não AI) và tự cài phần thiếu.
 
-- **Windows 10/11:** tải [JavisOS-Setup.exe](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-Setup.exe), bấm đúp, bấm Next tới hết. Tiến trình cài hiện ngay trong cửa sổ Setup, từng bước một (vài phút), không còn cửa sổ đen riêng. Xong thì có biểu tượng JAVIS OS trên Desktop và Start menu.
-- **macOS 11 trở lên:** tải [JavisOS-macOS.dmg](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-macOS.dmg), mở ra, kéo **JAVIS OS** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Javis và mật khẩu máy Mac một lần).
+- **Windows 10/11:** tải [JavisOS-Setup.exe](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-Setup.exe), bấm đúp, bấm Next tới hết. Tiến trình cài hiện ngay trong cửa sổ Setup, từng bước một (vài phút), không còn cửa sổ đen riêng. Xong thì có biểu tượng JAVIS OS trên Desktop và Start menu.
+- **macOS 11 trở lên:** tải [JavisOS-macOS.dmg](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-macOS.dmg), mở ra, kéo **JAVIS OS** vào **Applications**, rồi mở từ Launchpad. Lần đầu Terminal mở ra để cài (có thể hỏi đặt tài khoản quản trị Javis và mật khẩu máy Mac một lần).
 
 Bấm vào biểu tượng là Javis mở thành cửa sổ riêng (không thanh địa chỉ), Javis tự chạy cùng máy, nút **Cập nhật** trong app dùng được như thường. Dữ liệu nằm ở thư mục `JavisOS` trong thư mục người dùng; gỡ app không xoá thư mục này.
 
 **Cách cài không bị màn hình cảnh báo (khuyên dùng).** Hai bộ cài chưa ký số, nên tải bằng trình duyệt thì lần đầu máy sẽ chặn lại. Dán một dòng lệnh dưới đây thì không bị chặn, vẫn ra đúng bộ cài có logo Javis:
 - **Windows:** bấm Start, gõ `PowerShell`, mở lên, dán dòng này rồi Enter:
   ```
-  irm https://raw.githubusercontent.com/blogminhquy/javis-os/main/packaging/windows/get-javis.ps1 | iex
+  irm https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/packaging/windows/get-javis.ps1 | iex
   ```
 - **macOS:** mở **Terminal** (Launchpad, gõ Terminal), dán dòng này rồi Enter:
   ```
-  curl -fsSL https://raw.githubusercontent.com/blogminhquy/javis-os/main/packaging/macos/get-javis.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/packaging/macos/get-javis.sh | bash
   ```
 
 Bộ cài thay đổi gì trên máy, ai ký số, Javis gửi gì đi đâu: [Code signing policy](docs/code-signing-policy.md) · [Privacy policy](PRIVACY.md) (tiếng Anh).
@@ -30,7 +30,7 @@ Nếu đã tải file bằng trình duyệt và bị chặn:
 - Windows hiện "Windows protected your PC": bấm **More info** rồi **Run anyway**.
 - Trình diệt virus xoá mất file, hoặc Windows chặn mà không có nút **Run anyway** (máy bật Smart App Control): cài không qua file exe. Cài [Git](https://git-scm.com/download/win), mở PowerShell, dán dòng này rồi Enter. Xong thì Javis tự mở ở http://localhost:7777 và tự chạy cùng máy:
   ```
-  git clone https://github.com/blogminhquy/javis-os.git "$env:USERPROFILE\JavisOS"; cd "$env:USERPROFILE\JavisOS"; powershell -ExecutionPolicy Bypass -File install.ps1
+  git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git "$env:USERPROFILE\JavisOS"; cd "$env:USERPROFILE\JavisOS"; powershell -ExecutionPolicy Bypass -File install.ps1
   ```
 - macOS báo không mở được: vào **System Settings → Privacy & Security**, kéo xuống bấm **Open Anyway**, rồi mở lại JAVIS OS.
 
@@ -41,7 +41,7 @@ Nếu đã tải file bằng trình duyệt và bị chặn:
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Dán URL:
    ```
-   https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.hostinger.yml
    ```
 3. (Tùy chọn, để có HTTPS + tên miền) ở ô **Environment** đặt:
    ```

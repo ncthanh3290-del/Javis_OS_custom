@@ -17875,7 +17875,7 @@ async def config():
 # ============================================
 # Phiên bản + cập nhật trong UI
 # ============================================
-GITHUB_REPO = "blogminhquy/javis-os"
+GITHUB_REPO = "ncthanh3290-del/Javis_OS_custom"
 _UPDATE_TASKS = set()   # giữ ref mạnh cho asyncio.create_task (tránh GC nuốt mất task)
 
 

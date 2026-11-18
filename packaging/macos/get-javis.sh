@@ -2,7 +2,7 @@
 # ============================================================
 # JAVIS OS - one-line install for macOS, no "cannot be opened" block
 #
-#   curl -fsSL https://raw.githubusercontent.com/blogminhquy/javis-os/main/packaging/macos/get-javis.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/packaging/macos/get-javis.sh | bash
 #
 # Downloads the same JavisOS-macOS.dmg the website links to, copies JAVIS OS.app into
 # Applications, then runs its first-time install right here in this Terminal window.
@@ -12,7 +12,7 @@
 # ============================================================
 set -euo pipefail
 
-URL="https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-macOS.dmg"
+URL="https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-macOS.dmg"
 [ "$(uname -s)" = "Darwin" ] || { echo "This installer is for macOS. On Linux run ./install.sh from the repo."; exit 1; }
 
 TMP="$(mktemp -d)"

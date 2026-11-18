@@ -8,19 +8,19 @@ Get Javis OS running in a few minutes. Full guides: [docs/en/](docs/en/README.md
 
 Install Javis like any other app: download one file, open it, and you get a JAVIS OS icon to click every day. The installer checks what the computer is missing (Git, Python, Node, the AI brains) and installs only that.
 
-- **Windows 10/11:** download [JavisOS-Setup.exe](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-Setup.exe), double-click it and press Next to the end. The install progress shows inside the Setup window itself, step by step (a few minutes), with no separate black window. When it is done there is a JAVIS OS icon on the Desktop and in the Start menu.
-- **macOS 11 or newer:** download [JavisOS-macOS.dmg](https://github.com/blogminhquy/javis-os/releases/download/desktop/JavisOS-macOS.dmg), open it, drag **JAVIS OS** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Javis admin account and for your Mac password once).
+- **Windows 10/11:** download [JavisOS-Setup.exe](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-Setup.exe), double-click it and press Next to the end. The install progress shows inside the Setup window itself, step by step (a few minutes), with no separate black window. When it is done there is a JAVIS OS icon on the Desktop and in the Start menu.
+- **macOS 11 or newer:** download [JavisOS-macOS.dmg](https://github.com/ncthanh3290-del/Javis_OS_custom/releases/download/desktop/JavisOS-macOS.dmg), open it, drag **JAVIS OS** into **Applications**, then open it from Launchpad. The first time, Terminal opens to install (it may ask you to set a Javis admin account and for your Mac password once).
 
 Clicking the icon opens Javis in its own window (no address bar), Javis starts with the computer, and the in-app **Update** button works as usual. Your data lives in the `JavisOS` folder in your user folder; uninstalling the app keeps that folder.
 
 **Install without the warning screen (recommended).** Both installers are not code-signed yet, so a browser download gets blocked the first time. Paste one line instead and you get the same installer with the Javis logo, unblocked:
 - **Windows:** press Start, type `PowerShell`, open it, paste this line and press Enter:
   ```
-  irm https://raw.githubusercontent.com/blogminhquy/javis-os/main/packaging/windows/get-javis.ps1 | iex
+  irm https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/packaging/windows/get-javis.ps1 | iex
   ```
 - **macOS:** open **Terminal** (Launchpad, type Terminal), paste this line and press Enter:
   ```
-  curl -fsSL https://raw.githubusercontent.com/blogminhquy/javis-os/main/packaging/macos/get-javis.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/packaging/macos/get-javis.sh | bash
   ```
 
 What the installers change on your computer, who signs them and what Javis sends where: [Code signing policy](docs/code-signing-policy.md) · [Privacy policy](PRIVACY.md).
@@ -30,7 +30,7 @@ If you already downloaded the file with the browser and it was blocked:
 - Windows shows "Windows protected your PC": click **More info**, then **Run anyway**.
 - Your antivirus deletes the file, or Windows blocks it with no **Run anyway** button (Smart App Control is on): install without the .exe. Install [Git](https://git-scm.com/download/win), open PowerShell, paste this line and press Enter. When it ends, Javis opens at http://localhost:7777 and starts with the computer:
   ```
-  git clone https://github.com/blogminhquy/javis-os.git "$env:USERPROFILE\JavisOS"; cd "$env:USERPROFILE\JavisOS"; powershell -ExecutionPolicy Bypass -File install.ps1
+  git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git "$env:USERPROFILE\JavisOS"; cd "$env:USERPROFILE\JavisOS"; powershell -ExecutionPolicy Bypass -File install.ps1
   ```
 - macOS says it cannot open the app: go to **System Settings → Privacy & Security**, scroll down, click **Open Anyway**, then open JAVIS OS again.
 
@@ -41,7 +41,7 @@ If you already downloaded the file with the browser and it was blocked:
 1. hPanel → VPS → **Docker Manager** → **Compose** → **Compose from URL**.
 2. Paste this URL:
    ```
-   https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.hostinger.yml
    ```
 3. (Optional, for HTTPS + a domain) set this in the **Environment** box:
    ```

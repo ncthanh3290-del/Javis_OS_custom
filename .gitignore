@@ -221,3 +221,25 @@ server/client_errors.tmp
 # Desktop installers built by packaging/ (CI publishes them on the "desktop" release)
 /dist/
 packaging/windows/Vietnamese.isl
+
+# Bản custom tách repo (19/11/2026): dữ liệu chạy của server, không phải mã nguồn.
+server/agent_notify.json
+server/brain-export/
+server/cache/
+server/checkpoints/
+server/codex_instr_threads.json
+server/connect_smoke.json
+server/github_work.db*
+server/incidents.json
+server/javis_core.json
+server/job_marks.sqlite3*
+server/learned_mirror.json
+server/news_read.json
+server/plan_limits.json
+server/scorecard.sqlite3*
+server/sdk-update.json
+server/tool_results.sqlite3*
+server/turn_ledger.sqlite3*
+server/webhook_events.sqlite3*
+server/mcp-stdio-pids.json
+server/share_links.json

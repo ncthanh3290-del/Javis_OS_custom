@@ -18,7 +18,7 @@ Javis OS is a personal AI agent plus a Second Brain. Its "brain" is the **Claude
 
 On the Hostinger VPS go to **Docker Manager → Compose → URL**, paste the link and **Deploy**:
 ```
-https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml
+https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml
 ```
 Hostinger pulls the image and runs it. Open the app at `http://<vps-ip>:7777` (the IP is in
 hPanel → VPS) and you get the **create admin account** screen.
@@ -54,7 +54,7 @@ hPanel → VPS) and you get the **create admin account** screen.
 Docker is required. Do not have it? `curl -fsSL https://get.docker.com | sh`
 ```bash
 mkdir javis && cd javis
-curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml
 
 docker compose run --rm javis claude auth login --claudeai   # SIGN CLAUDE IN ONCE (link + code)
 docker compose up -d                                          # pull the GHCR image and run
@@ -100,7 +100,7 @@ you **must set a `DOMAIN_NAME` variable**:
 1. Find the **VPS hostname** in hPanel → VPS (for example `srv1782015.hstgr.cloud`).
 2. Docker Manager → Compose → URL:
    ```
-   https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.hostinger.yml
+   https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.hostinger.yml
    ```
 3. The new template's **Environment** box has only 3 meaningful fields:
    - `DOMAIN_NAME`: set `javis.<vps-hostname>.hstgr.cloud`
@@ -206,7 +206,7 @@ for the whole machine**:
 
 ```bash
 docker network create javis-web
-curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.proxy.yml
+curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.proxy.yml
 docker compose -f docker-compose.proxy.yml -p javis-proxy up -d
 ```
 
@@ -214,8 +214,8 @@ Then give each instance **its own folder**:
 
 ```bash
 mkdir -p ~/javis-shop && cd ~/javis-shop
-curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.multi.yml
+curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.multi.yml
 cat > .env <<'EOF'
 JAVIS_NAME=javis-shop
 JAVIS_HOST_PORT=7777
@@ -294,7 +294,7 @@ Trust (free), take the token, put `TUNNEL_TOKEN=...` into `.env`, change the `tu
 ## Way 2 - Installing directly on Linux/macOS (no Docker)
 
 ```bash
-git clone https://github.com/blogminhquy/javis-os.git javis && cd javis
+git clone https://github.com/ncthanh3290-del/Javis_OS_custom.git javis && cd javis
 chmod +x install.sh && ./install.sh
 ```
 
@@ -348,7 +348,7 @@ Stop it with `stop-javis.bat`. Open http://localhost:7777
 >   older compose file (Watchtower used to sit under `profiles: ["update"]`, which
 >   `docker compose up -d` does not start). Fetch the new file and bring it up again:
 >   ```bash
->   curl -fsSLO https://raw.githubusercontent.com/blogminhquy/javis-os/main/docker-compose.yml
+>   curl -fsSLO https://raw.githubusercontent.com/ncthanh3290-del/Javis_OS_custom/main/docker-compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   Not ready to swap the compose file? Starting it on its own works too:
@@ -372,7 +372,7 @@ Stop it with `stop-javis.bat`. Open http://localhost:7777
 >   cp compose.yml compose.yml.bak     # the file may be called docker-compose.yml
 >   docker compose config | grep -A1 "target:"   # the paths inside must be /data, /brains,
 >                                                 # /home/javis/.claude, /home/javis/.codex
->   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/blogminhquy/javis-os:latest#' compose.yml
+>   sed -i 's#^\(\s*image:\s*\).*#\1ghcr.io/ncthanh3290-del/javis_os_custom:latest#' compose.yml
 >   docker compose up -d --pull always
 >   ```
 >   The `sed` line changes EVERY `image:` line in the file, so use it only when the file has a single
