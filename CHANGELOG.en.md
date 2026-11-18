@@ -8,6 +8,19 @@ English entries start at 0.66.0. Every earlier release is described in the Vietn
 
 Format: each release is a `## [x.y.z] - date` block, with changes grouped under `### Added / Fixed / Improved / Security`.
 
+## [0.589.1] - 2026-11-19
+### Improved
+- **The whole update and release machinery points at the custom fork
+- **Runtime data files are out of git** (`.gitignore` + untrack): state sqlite3 databases,
+
+## [0.589.0] - 2026-11-19
+### Added
+- **A new "Codex CLI" card on the Models page.** Enter a name, a Base URL and an API key of any
+
+## [0.588.0] - 2026-11-19
+### Added
+- **A new "Claude Code CLI" card on the Models page.** Enter a name, a Base URL and an API key of
+
 ## [0.587.0] - 2026-11-18
 ### Improved
 - **Long turns cost fewer tokens, on every brain.** When the model calls the same tool with the same arguments and the result is identical, it gets a one-line reference instead of the whole text again. The tool still runs every time, so changed data always reaches the model in full. For Claude Code and Codex this happens at the hub, and Javis forgets the turn's record whenever they compact their conversation.

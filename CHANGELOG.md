@@ -6,6 +6,19 @@ Lịch sử phiên bản Javis OS. Bản mới nhất ở trên cùng. Xem ngay 
 
 Định dạng: mỗi phiên bản là một khối `## [x.y.z] - ngày`, bên dưới nhóm thay đổi theo `### Thêm mới / Sửa lỗi / Cải thiện / Bảo mật`.
 
+## [0.589.1] - 2026-11-19
+### Cải thiện
+- **Toàn bộ cơ chế cập nhật và phát hành trỏ về repo riêng `ncthanh3290-del/Javis_OS_custom`.**
+- **Bỏ các file dữ liệu chạy khỏi git** (`.gitignore` + untrack): sqlite3 trạng thái, cache,
+
+## [0.589.0] - 2026-11-19
+### Thêm mới
+- **Thẻ "Codex CLI" mới ở trang Models.** Nhập tên, Base URL và API key của một cổng tự khai
+
+## [0.588.0] - 2026-11-19
+### Thêm mới
+- **Thẻ "Claude Code CLI" mới ở trang Models.** Nhập tên, Base URL và API key của một tổng đài
+
 ## [0.587.0] - 2026-11-18
 ### Cải thiện
 - **Lượt dài tốn ít token hơn, với mọi bộ não.** Model gọi lại đúng công cụ với đúng tham số mà kết quả y hệt lần trước thì nhận một dòng tham chiếu thay vì cả khối chữ lần nữa. Công cụ vẫn chạy lại thật, nên dữ liệu đổi là model nhận bản mới đầy đủ. Với Claude Code và Codex, việc này làm ở cổng hub, và Javis quên sổ của lượt đó mỗi khi chúng nén hội thoại.
